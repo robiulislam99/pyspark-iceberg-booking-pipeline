@@ -1,0 +1,14 @@
+services:
+  spark:
+    build: .
+    container_name: booking-lake-spark
+    volumes:
+      - ./src:/app/src
+      - ./warehouse:/app/warehouse
+      - ./notebooks:/app/notebooks
+      # CHANGE THE LEFT SIDE to wherever your real booking/ folder lives on your host machine:
+      - /path/to/your/booking:/app/booking_data:ro
+    environment:
+      - BOOKING_DATA_DIR=/app/booking_data
+    ports:
+      - "4040:4040"   # Spark UI - open http://localhost:4040 while a job is running
