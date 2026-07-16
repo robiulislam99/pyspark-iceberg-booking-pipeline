@@ -45,6 +45,6 @@ def get_spark(app_name: str = "booking-etl") -> SparkSession:
         .master("local[*]")
         .getOrCreate()
     )
-    # SedonaContext.create() registers Sedona's UDTs/functions on top of
+    #SedonaContext.create() registers Sedona's UDTs/functions on top of
     # the session above; it returns the same session, just Sedona-aware.
     return SedonaContext.create(config)
