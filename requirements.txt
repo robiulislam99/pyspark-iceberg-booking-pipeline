@@ -2,3 +2,5 @@ pyspark==3.5.4
 pandas==2.2.3
 pyarrow==17.0.0
 python-slugify==8.0.4
+apache-sedona==1.6.1
+shapely==2.0.6

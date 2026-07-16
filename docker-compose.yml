@@ -7,7 +7,7 @@ services:
       - ./warehouse:/app/warehouse
       - ./notebooks:/app/notebooks
       # CHANGE THE LEFT SIDE to wherever your real booking/ folder lives on your host machine:
-      - /path/to/your/booking:/app/booking_data:ro
+      - ./booking:/app/booking_data:ro
     environment:
       - BOOKING_DATA_DIR=/app/booking_data
     ports:
