@@ -13,10 +13,11 @@ The single processing function:
   - Pure function: no database/Spark access, no I/O, no side effects.
     Same input always produces the same output, so it's trivial to unit-test.
 
-Ported from the Django version. Two changes forced by dropping Django:
+Ported from the Django version. Changes forced by dropping Django:
   - django.utils.text.slugify -> python-slugify's slugify (same behavior)
-  - django.contrib.gis.geos.Point -> no geography type in Iceberg, so
-    "latlon" becomes two plain float fields, latitude/longitude
+  - django.contrib.gis.geos.Point -> resolve_latlon now returns an EWKT
+    string, e.g. 'SRID=4326;POINT (lon lat)', matching sync_iceberg.py's
+    ST_GeomFromEWKT() call that turns it into a real Iceberg GEOMETRY value.
 Also dropped the unused `from curses import raw` import (it did nothing --
 immediately shadowed by the `raw` parameter -- and isn't available outside
 Linux, so no reason to keep it here).
@@ -54,22 +55,21 @@ def resolve_property_type(accommodation_type_code) -> tuple[str, str]:
 
 def resolve_latlon(raw_latitude, raw_longitude):
     """
-    raw lat/lon (float or str) -> (latitude, longitude) as plain floats,
-    or (None, None) if missing/invalid.
+    raw lat/lon (float or str) -> EWKT string, e.g.
+    'SRID=4326;POINT (-88.001641 17.882912)', or None if missing/invalid.
 
-    Original Django version built a GEOS Point(lon, lat, srid=4326) here.
-    Iceberg has no built-in geography type, so we keep the two components
-    separate instead. If you add geometry support later (e.g. via the
-    Iceberg geometry extension), this is the function to update.
+    POINT order is (longitude, latitude) -- matches PostGIS/GEOS convention.
+    sync_iceberg.py converts this text into a real Iceberg GEOMETRY value
+    via ST_GeomFromEWKT() at merge time.
     """
     if raw_latitude is None or raw_longitude is None:
-        return None, None
+        return None
     try:
         lat = float(raw_latitude)
         lon = float(raw_longitude)
     except (TypeError, ValueError):
-        return None, None
-    return lat, lon
+        return None
+    return f"SRID=4326;POINT ({lon} {lat})"
 
 
 def resolve_images(photos: list) -> tuple[str, list]:
@@ -229,7 +229,7 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
 
     property_name = (raw.get("name", {}).get("en-us") or "").strip()
 
-    latitude, longitude = resolve_latlon(coordinates.get("latitude"), coordinates.get("longitude"))
+    latlon = resolve_latlon(coordinates.get("latitude"), coordinates.get("longitude"))
 
     result = {
         # --- Identity --------------------------------------------------
@@ -250,8 +250,7 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         "country_code": country_code,
         "location_display": (location.get("address", {}).get("en-us") or "").strip(),
         "partner_location_id": raw.get("partner_location_id") or "",
-        "latitude": latitude,
-        "longitude": longitude,
+        "latlon": latlon,
 
         # --- Ratings & size -----------------------------------------------
         "star_rating": rating.get("stars"),
