@@ -5,7 +5,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./warehouse:/app/warehouse
-      - ./notebooks:/app/notebooks
+      
       # CHANGE THE LEFT SIDE to wherever your real booking/ folder lives on your host machine:
       - ./booking:/app/booking_data:ro
     environment:
