@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Django
+*.sqlite3
+/media/
+staticfiles/
+
+# Environment / secrets — never commit real values
+.env
+
+# Logs
+/logs/*.log
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Docker
+postgres_data/
+
+# Real Booking.com data feed — not committed, lives on disk at project root
+/booking/
