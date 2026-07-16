@@ -6,10 +6,16 @@ __pycache__/
 venv/
 env/
 
-# Django
-*.sqlite3
-/media/
-staticfiles/
+# Spark / Ivy jar cache 
+.ivy2/
+metastore_db/
+derby.log
+spark-warehouse/
+
+# Iceberg local warehouse data 
+warehouse/*
+!warehouse/.gitkeep
+
 
 # Environment / secrets — never commit real values
 .env
