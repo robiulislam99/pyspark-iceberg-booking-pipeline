@@ -1,82 +1,94 @@
-## Since warehouse/ needs to exist as a folder but its contents shouldn't be tracked:
-```
-touch ~/booking-lake/warehouse/.gitkeep
-```
+# Booking Lake — PySpark + Iceberg + Sedona Pipeline
 
+Local ETL pipeline: reads Booking.com JSON feed files, transforms them,
+upserts into a local Iceberg table via Spark. No AWS, no cloud account,
+no sudo required — everything runs inside Docker.
 
-# Commands to run and see output
-```
-cd ~/booking-lake
-```
-# 1. Build the image (installs Java 17 + PySpark + Sedona inside the container)
-```docker compose build
+## Prerequisites
 
-# 2. Start the container in the background
+- Docker + Docker Compose installed on the host
+- Your `booking/` data folder placed at `./booking` (sibling of `src/`)
+
+## First-time setup
+
+```bash
+mkdir -p warehouse scheduler_data notebooks
+touch warehouse/.gitkeep
+
+docker compose build
 docker compose up -d
 ```
-```
-# 3. Get a shell inside it
-docker compose exec spark bash
 
+## Run a manual sync
 
-# Now inside the container:
-cd /app/src
+```bash
+docker compose exec spark python /app/src/run_sync.py 20260714
 ```
-```
-# 4. Sanity check Java
-java -version
-```
-```
-# 5. Run the smoke test for geometry writes (first run downloads Iceberg + Sedona jars, needs internet)
-python -c "
-from spark_session import get_spark
 
-spark = get_spark('smoke-test-geometry')
-spark.sql('CREATE NAMESPACE IF NOT EXISTS local.smoketest')
-spark.sql(\"\"\"
-    CREATE TABLE IF NOT EXISTS local.smoketest.geo_check (id STRING, latlon GEOMETRY)
-    USING iceberg TBLPROPERTIES ('format-version'='3')
-\"\"\")
-spark.createDataFrame(
-    [('a', 'SRID=4326;POINT (-88.001641 17.882912)')],
-    ['id', 'latlon_text'],
-).createOrReplaceTempView('staged')
-spark.sql(\"\"\"
-    MERGE INTO local.smoketest.geo_check t
-    USING staged s
-    ON t.id = s.id
-    WHEN NOT MATCHED THEN INSERT (id, latlon) VALUES (s.id, ST_GeomFromEWKT(s.latlon_text))
-\"\"\")
-spark.sql('SELECT id, ST_AsText(latlon) FROM local.smoketest.geo_check').show(truncate=False)
-spark.sql('DROP TABLE local.smoketest.geo_check')
-spark.stop()
-"
-```
-Expect to see a table print showing POINT (-88.001641 17.882912). If that shows up, continue:
-# 6. Run the real sync for a date that has data on disk
-```
-python run_sync.py 20260716
-```
-Expect output like:
-{'date': '20260716', 'created': X, 'updated': Y, 'errors': 0, 'skipped': Z}
+(replace `20260714` with the date folder you want to process)
 
-# 7. Inspect the resulting table
-```
-python -c "
+## Inspect the data
+
+```bash
+docker compose exec spark python -c "
 from spark_session import get_spark
 spark = get_spark()
+spark.sql('SELECT COUNT(*) FROM local.booking.rental_property').show()
 spark.sql('''
-    SELECT external_id, property_name, city, is_published, ST_AsText(latlon) AS latlon
+    SELECT external_id, property_name, city, country, is_published, latlon
     FROM local.booking.rental_property
     LIMIT 10
 ''').show(truncate=False)
 "
 ```
-# 8. Exit the container shell when done
+
+## Explore interactively with Jupyter
+
+```bash
+docker compose exec spark jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
 ```
-exit
+
+Copy the printed `http://127.0.0.1:8888/lab?token=...` URL, open
+`notebooks/explore_data.ipynb` in VS Code, select it as an
+**Existing Jupyter Server** kernel, then run cells.
+
+## Scheduler (manual trigger for now — cron not yet wired up)
+
+```bash
+# add a schedule
+docker compose exec spark python /app/src/manage_schedule.py add --frequency daily --run-time 03:00
+
+# list schedules
+docker compose exec spark python /app/src/manage_schedule.py list
+
+# manually simulate a scheduler tick
+docker compose exec spark python /app/src/run_due_schedules.py
+
+# view run history
+docker compose exec spark python /app/src/manage_schedule.py jobs
 ```
-# 9. Stop the container (from your host, outside the container)
+
+## Compare what changed between two syncs
+
+```bash
+docker compose exec spark python -c "
+from spark_session import get_spark
+from snapshot_diff import diff_snapshots
+
+spark = get_spark()
+snaps = spark.sql('SELECT snapshot_id FROM local.booking.rental_property.snapshots ORDER BY committed_at').collect()
+diff_snapshots(spark, snaps[-2]['snapshot_id'], snaps[-1]['snapshot_id'])
+"
 ```
+
+## Shell into the container (for debugging)
+
+```bash
+docker compose exec spark bash
+```
+
+## Stop everything
+
+```bash
 docker compose down
 ```
