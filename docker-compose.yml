@@ -5,10 +5,13 @@ services:
     volumes:
       - ./src:/app/src
       - ./warehouse:/app/warehouse
-      
-      # CHANGE THE LEFT SIDE to wherever your real booking/ folder lives on your host machine:
+      - ./scheduler_data:/app/scheduler_data
+      - ./notebooks:/app/notebooks
       - ./booking:/app/booking_data:ro
     environment:
       - BOOKING_DATA_DIR=/app/booking_data
+      - SCHEDULER_DB_PATH=/app/scheduler_data/scheduler.db
+      - PYTHONPATH=/app/src
     ports:
-      - "4040:4040"   # Spark UI - open http://localhost:4040 while a job is running
+      - "4040:4040"
+      - "8888:8888"

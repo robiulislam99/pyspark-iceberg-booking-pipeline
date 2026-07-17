@@ -4,3 +4,5 @@ pyarrow==17.0.0
 python-slugify==8.0.4
 apache-sedona==1.6.1
 shapely==2.0.6
+jupyterlab==4.2.5
+ipykernel==6.29.5
