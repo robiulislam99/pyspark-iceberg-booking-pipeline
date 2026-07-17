@@ -33,3 +33,6 @@ postgres_data/
 
 # Real Booking.com data feed — not committed, lives on disk at project root
 /booking/
+
+notebooks/.ipynb_checkpoints/
+notebooks/explore_data.ipynb
