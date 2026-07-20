@@ -8,10 +8,54 @@ services:
       - ./scheduler_data:/app/scheduler_data
       - ./notebooks:/app/notebooks
       - ./booking:/app/booking_data:ro
+      - ./ivy_cache:/root/.ivy2
     environment:
       - BOOKING_DATA_DIR=/app/booking_data
       - SCHEDULER_DB_PATH=/app/scheduler_data/scheduler.db
       - PYTHONPATH=/app/src
+      - SQS_ENDPOINT_URL=http://localstack:4566
+      - SQS_QUEUE_NAME=booking-property-updates
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ES_INDEX_NAME=rental_properties
     ports:
       - "4040:4040"
       - "8888:8888"
+    depends_on:
+      - localstack
+      - elasticsearch
+
+  localstack:
+    image: localstack/localstack:3.7
+    container_name: booking-lake-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs
+      - DEFAULT_REGION=us-east-1
+    volumes:
+      - ./localstack_data:/var/lib/localstack
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: booking-lake-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - ./es_data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.0
+    container_name: booking-lake-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch

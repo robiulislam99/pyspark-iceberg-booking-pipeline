@@ -6,3 +6,5 @@ apache-sedona==1.6.1
 shapely==2.0.6
 jupyterlab==4.2.5
 ipykernel==6.29.5
+boto3==1.35.36
+elasticsearch==8.15.1
