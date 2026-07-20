@@ -1,12 +1,12 @@
 """
-Mirrors sync_booking_properties.py management command.
-Usage inside the container: python run_sync.py 20260716
-
-BOOKING_DATA_DIR must be set as an env var -- file_locator/static_data read it internally now.
+Mirrors sync_booking_properties.py management command, then publishes
+an SQS event listing which feed_provider_ids changed, for the consumer
+to pick up and push into Elasticsearch.
 """
 import sys
 
 from sync_iceberg import sync_accommodation_details
+from sqs_client import publish_sync_event
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -16,3 +16,5 @@ if __name__ == "__main__":
     date_str = sys.argv[1]
     summary = sync_accommodation_details(date_str)
     print(summary)
+
+    publish_sync_event(summary.get("feed_provider_ids", []), date_str)

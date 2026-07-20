@@ -322,6 +322,8 @@ def sync_accommodation_details(date_str: str) -> dict:
     summary["created"] = after_count - before_count
     summary["updated"] = len(processed_rows) - summary["created"]
 
+    summary["feed_provider_ids"] = [row["feed_provider_id"] for row in processed_rows]
+
     logger.info(f"Finished sync for date={date_str}: {summary}")
     spark.stop()
     return summary
