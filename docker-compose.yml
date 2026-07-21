@@ -9,10 +9,12 @@ services:
       - ./notebooks:/app/notebooks
       - ./booking:/app/booking_data:ro
       - ./ivy_cache:/root/.ivy2
+      - ./s3_local:/app/s3_local
     environment:
       - BOOKING_DATA_DIR=/app/booking_data
       - SCHEDULER_DB_PATH=/app/scheduler_data/scheduler.db
       - PYTHONPATH=/app/src
+      - S3_LOCAL_ROOT=/app/s3_local
       - SQS_ENDPOINT_URL=http://localstack:4566
       - SQS_QUEUE_NAME=booking-property-updates
       - AWS_ACCESS_KEY_ID=test
