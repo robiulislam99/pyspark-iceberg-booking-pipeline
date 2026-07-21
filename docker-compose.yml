@@ -22,6 +22,8 @@ services:
       - AWS_DEFAULT_REGION=us-east-1
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - ES_INDEX_NAME=rental_properties
+      - DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
+      - DYNAMODB_TABLE_NAME=rental_properties
     ports:
       - "4040:4040"
       - "8888:8888"
@@ -61,3 +63,27 @@ services:
       - "5601:5601"
     depends_on:
       - elasticsearch
+
+  
+  dynamodb-local:
+    image: amazon/dynamodb-local:2.5.2
+    container_name: booking-lake-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/data"]
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./dynamodb_data:/data
+
+  
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: booking-lake-dynamodb-admin
+    environment:
+      - DYNAMO_ENDPOINT=http://dynamodb-local:8000
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    ports:
+      - "8002:8001"
+    depends_on:
+      - dynamodb-local
