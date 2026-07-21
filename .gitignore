@@ -44,3 +44,5 @@ es_data/
 # Notebooks
 notebooks/.ipynb_checkpoints/
 notebooks/explore_data.ipynb
+
+s3_local/
