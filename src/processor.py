@@ -238,6 +238,39 @@ def resolve_other_policy(raw: dict) -> str:
     return (important_info.get("en-us") or "").strip()
 
 
+def resolve_feature_summary(facilities: list) -> list:
+    """
+    facilities -> list of {"name": category, "description": "amenity1\namenity2..."}
+    Groups amenity names under their facility_type category.
+    """
+    if not facilities:
+        return []
+
+    facility_map = get_accommodation_facility_map()
+    type_name_map = get_facility_type_name_map()
+
+    grouped = {}  # category_name -> list of amenity names (keeps order)
+
+    for facility in facilities:
+        facility_id = str(facility.get("id"))
+        info = facility_map.get(facility_id)
+        if not info:
+            continue
+
+        name = info.get("name")
+        facility_type = info.get("facility_type")
+        category_name = type_name_map.get(str(facility_type)) if facility_type is not None else None
+
+        if not name or not category_name:
+            continue
+
+        grouped.setdefault(category_name, []).append(name)
+
+    return [
+        {"name": category, "description": "\n".join(names)}
+        for category, names in grouped.items()
+    ]
+
 
 def process_rental_property(raw: dict, search_price_map: dict) -> dict:
     """Transform one raw rental_property dict into a clean dict for the Iceberg table."""
@@ -322,6 +355,8 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         "property_flags": resolve_property_flags(raw),
 
         "other_policy": resolve_other_policy(raw),
+
+        "feature_summary": resolve_feature_summary(facilities),
 
         # --- Status -----------------------------------------------------
         "is_published": raw.get("accommodation_status") == "open",
