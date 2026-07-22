@@ -248,6 +248,7 @@ def sync_accommodation_details(date_str: str) -> dict:
 
             row["policy"] = json.dumps(row["policy"])
             row["property_flags"] = json.dumps(row["property_flags"])
+            row["feature_summary"] = json.dumps(row["feature_summary"])
             row["raw_data"] = json.dumps(row["raw_data"])
             processed_rows.append(row)
         except Exception as e:
