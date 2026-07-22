@@ -3,12 +3,18 @@ Maps one Iceberg rental_property row into the target S3 document shape
 (the nested Feed/Partner/Property structure). Only fields present in the
 Iceberg table, or directly derivable from its policy/property_flags
 JSON, are included -- fields with no source in the schema (State,
-FeatureSummary, PropertyDescription, LicenseNumber, PhoneNumber, most
-Is* booleans, RankedImage, etc.) are intentionally left out rather than
-fabricated.
+StateAbbr, FeatureSummary, PropertyDescription, LicenseNumber,
+PhoneNumber, EcoFriendly, IsAllInclusive, PropertyTypeCategoryId,
+RoomSize, most other Is* booleans, etc.) are intentionally left out
+rather than fabricated.
+
+RankedImage/RankedImages ARE included, via image_ranker.rank_images() --
+a Hugging Face aesthetic-scoring model ranks each property's photos
+best-to-worst by visual quality alone (not by description/room content).
 """
 import json
 import re
+from image_ranker import rank_images
 
 _POINT_RE = re.compile(r"POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)")
 
@@ -30,7 +36,7 @@ def to_s3_document(row: dict) -> dict:
     lat, lng = _parse_latlng(row.get("latlon"))
     images = row.get("images") or []
 
-    return {
+    document = {
         "Feed": row.get("feed"),
         "City": row.get("city"),
         "Country": row.get("country"),
@@ -63,6 +69,11 @@ def to_s3_document(row: dict) -> dict:
                 "Count": len(images),
                 "Images": images,
             },
+            "RankedImage": None,       # filled in below, after ranking
+            "RankedImages": {
+                "Count": 0,
+                "Images": [],
+            },
             "IsPetFriendly": policy.get("pets_allowed", False),
             "LongStayFriendlyHome": property_flags.get("long_stay_friendly_home", False),
             "MinStay": row.get("min_stay"),
@@ -77,3 +88,13 @@ def to_s3_document(row: dict) -> dict:
         },
         "Published": row.get("is_published"),
     }
+
+    if images:
+        ranked = rank_images(images)
+        document["Property"]["RankedImage"] = ranked[0] if ranked else None
+        document["Property"]["RankedImages"] = {
+            "Count": len(ranked),
+            "Images": ranked,
+        }
+
+    return document
