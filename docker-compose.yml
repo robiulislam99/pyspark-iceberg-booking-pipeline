@@ -10,8 +10,10 @@ services:
       - ./booking:/app/booking_data:ro
       - ./ivy_cache:/root/.ivy2
       - ./s3_local:/app/s3_local
+      - ./hf_cache:/root/.cache/huggingface
     environment:
       - BOOKING_DATA_DIR=/app/booking_data
+      - HF_HOME=/root/.cache/huggingface
       - SCHEDULER_DB_PATH=/app/scheduler_data/scheduler.db
       - PYTHONPATH=/app/src
       - S3_LOCAL_ROOT=/app/s3_local
@@ -24,6 +26,7 @@ services:
       - ES_INDEX_NAME=rental_properties
       - DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
       - DYNAMODB_TABLE_NAME=rental_properties
+    
     ports:
       - "4040:4040"
       - "8888:8888"
