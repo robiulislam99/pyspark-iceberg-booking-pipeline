@@ -58,13 +58,15 @@ RENTAL_PROPERTY_SCHEMA = StructType([
     StructField("property_slug", StringType()),
     StructField("property_type", StringType()),
     StructField("property_type_category", StringType()),
-
+    
     StructField("city", StringType()),
     StructField("country", StringType()),
     StructField("country_code", StringType()),
     StructField("location_display", StringType()),
     StructField("partner_location_id", StringType()),
     StructField("latlon", StringType()),   # EWKT text, e.g. 'SRID=4326;POINT (lon lat)'
+
+    StructField("language", StringType()),
 
     StructField("star_rating", IntegerType()),
     StructField("review_score", DecimalType(4, 2)),
@@ -113,6 +115,8 @@ def ensure_table_exists(spark):
             partner_location_id STRING,
             latlon STRING,
 
+            language STRING,
+
             star_rating INT,
             review_score DECIMAL(4,2),
             review_score_general DECIMAL(4,2),
@@ -143,6 +147,20 @@ def ensure_table_exists(spark):
             created_at TIMESTAMP
         ) USING iceberg
     """)
+    _sync_schema(spark)
+
+def _sync_schema(spark):
+    """
+    Auto-migrate: add any column present in RENTAL_PROPERTY_SCHEMA but
+    missing from the live Iceberg table. Runs on every sync, every date --
+    no manual ALTER TABLE ever needed again.
+    """
+    existing_columns = {f.name for f in spark.table(TABLE).schema.fields}
+    for field in RENTAL_PROPERTY_SCHEMA.fields:
+        if field.name not in existing_columns:
+            ddl_type = field.dataType.simpleString().upper()  # e.g. 'STRING', 'ARRAY<STRING>'
+            logger.info(f"Adding missing column '{field.name}' ({ddl_type}) to {TABLE}")
+            spark.sql(f"ALTER TABLE {TABLE} ADD COLUMN {field.name} {ddl_type}")
 
 
 def _to_decimal_or_none(value):
@@ -267,6 +285,8 @@ def sync_accommodation_details(date_str: str) -> dict:
             t.partner_location_id = COALESCE(NULLIF(s.partner_location_id, ''), t.partner_location_id),
             t.latlon = COALESCE(NULLIF(s.latlon, ''), t.latlon),
 
+            t.language = COALESCE(NULLIF(s.language, ''), t.language),
+
             t.star_rating = COALESCE(s.star_rating, t.star_rating),
             t.review_score = COALESCE(s.review_score, t.review_score),
             t.review_score_general = COALESCE(s.review_score_general, t.review_score_general),
@@ -296,7 +316,7 @@ def sync_accommodation_details(date_str: str) -> dict:
             external_id, feed, feed_provider_id, feed_provider_url,
             property_name, property_slug, property_type, property_type_category,
             city, country, country_code, location_display, partner_location_id,
-            latlon,
+            latlon, language,
             star_rating, review_score, review_score_general, number_of_review,
             bedroom_count, bathroom_count, occupancy, max_occupancy,
             currency, price, min_stay,
@@ -307,7 +327,7 @@ def sync_accommodation_details(date_str: str) -> dict:
             s.external_id, s.feed, s.feed_provider_id, s.feed_provider_url,
             s.property_name, s.property_slug, s.property_type, s.property_type_category,
             s.city, s.country, s.country_code, s.location_display, s.partner_location_id,
-            s.latlon,
+            s.latlon, s.language,
             s.star_rating, s.review_score, s.review_score_general, COALESCE(s.number_of_review, 0),
             s.bedroom_count, s.bathroom_count, s.occupancy, s.max_occupancy,
             COALESCE(s.currency, 'USD'), s.price, COALESCE(s.min_stay, 1),

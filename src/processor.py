@@ -252,6 +252,9 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         "partner_location_id": raw.get("partner_location_id") or "",
         "latlon": latlon,
 
+        # ---Language -----------------------------------------------------
+        "language": "en-us",
+        
         # --- Ratings & size -----------------------------------------------
         "star_rating": rating.get("stars"),
         "review_score": review_score,

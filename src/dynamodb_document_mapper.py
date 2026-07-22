@@ -21,7 +21,7 @@ def to_dynamodb_item(row: dict) -> dict:
 
     return {
         "country_code": row.get("country_code"),
-        "language": "",
+        "language": row.get("language"),
         "property_id": row.get("external_id"),
         "property_name": row.get("property_name"),
         "property_slug": row.get("property_slug"),
