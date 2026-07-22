@@ -65,6 +65,9 @@ def to_es_document(row: dict) -> dict:
 
         "amenity_categories": row.get("amenity_categories"),
         "property_flags": property_flags,
+        
+        "property_attributes": _build_property_attributes(row, policy),
+
 
         "published": row.get("is_published"),
 

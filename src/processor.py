@@ -192,15 +192,27 @@ def resolve_policy(raw: dict, search_info: dict) -> dict:
         "free_cancellation": search_info.get("free_cancellation", False),
     }
 
+def resolve_eco_friendly(raw: dict) -> bool:
+    """
+    True if 'eco friendly' or 'eco-friendly' text found in
+    description.important_information['en-us']
+    """
+    description = raw.get("description", {}) or {}
+    important_info = description.get("important_information", {}) or {}
+    text = (important_info.get("en-us") or "").lower()
+
+    return "eco friendly" in text or "eco-friendly" in text
+
 
 def resolve_property_flags(raw: dict) -> dict:
-    """
-    Boolean/flag-style fields from accommodation_details, grouped
-    into a single dict for the property_flags field.
-    """
+    policies = raw.get("policies") or {}
+    min_checkin_age = policies.get("minimum_checkin_age")
+
     return {
         "work_friendly_home": bool(raw.get("work_friendly_home", False)),
         "long_stay_friendly_home": bool(raw.get("long_stay_friendly_home", False)),
+        "eco_friendly_home": resolve_eco_friendly(raw),
+        "adult_only": min_checkin_age is not None and min_checkin_age >= 18,
     }
 
 def resolve_family_group_flags(raw: dict) -> tuple[bool, bool]:
