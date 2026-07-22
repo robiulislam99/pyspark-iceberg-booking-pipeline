@@ -19,9 +19,20 @@ def _parse_lonlat(latlon_text):
     lon, lat = float(match.group(1)), float(match.group(2))
     return [lon, lat]
 
+def _build_property_attributes(row: dict, policy: dict) -> list:
+    attributes = []
+    if row.get("family_friendly"):
+        attributes.append("Family Friendly")
+    if row.get("group_friendly"):
+        attributes.append("Group Friendly")
+    if policy.get("free_cancellation"):
+        attributes.append("Free Cancellation")
+    return attributes
+
 
 def to_es_document(row: dict) -> dict:
     property_flags = json.loads(row.get("property_flags") or "{}")
+    policy = json.loads(row.get("policy") or "{}")
 
     return {
         "id": row.get("external_id"),

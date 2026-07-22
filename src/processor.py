@@ -203,6 +203,23 @@ def resolve_property_flags(raw: dict) -> dict:
         "long_stay_friendly_home": bool(raw.get("long_stay_friendly_home", False)),
     }
 
+def resolve_family_group_flags(raw: dict) -> tuple[bool, bool]:
+    """
+    family_friendly = True if children value is not null
+    group_friendly  = True if total_guests >= 6
+    """
+    first_room = get_first_room(raw)
+    max_occ = first_room.get("maximum_occupancy", {})
+
+    children = max_occ.get("children")
+    total_guests = max_occ.get("total_guests") or 0
+
+    family_friendly = children is not None
+    group_friendly = total_guests >= 6
+
+    return family_friendly, group_friendly
+
+
 
 def process_rental_property(raw: dict, search_price_map: dict) -> dict:
     """Transform one raw rental_property dict into a clean dict for the Iceberg table."""
@@ -231,6 +248,8 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
 
     latlon = resolve_latlon(coordinates.get("latitude"), coordinates.get("longitude"))
 
+    family_friendly, group_friendly = resolve_family_group_flags(raw)
+
     result = {
         # --- Identity --------------------------------------------------
         "external_id": f"BC-{str(raw.get('id') or '').strip()}",
@@ -254,7 +273,7 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
 
         # ---Language -----------------------------------------------------
         "language": "en-us",
-        
+
         # --- Ratings & size -----------------------------------------------
         "star_rating": rating.get("stars"),
         "review_score": review_score,
@@ -273,6 +292,10 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         # --- Media -----------------------------------------------------
         "feature_image": feature_image,
         "images": images,
+
+        # --- Family/group flags -----------------------------------------------
+        "family_friendly": family_friendly,
+        "group_friendly": group_friendly,
 
         # --- Nested source data, stored as-is -----------------------------------------------
         "amenities": amenities,

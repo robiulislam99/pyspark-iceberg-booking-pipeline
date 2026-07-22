@@ -84,6 +84,9 @@ RENTAL_PROPERTY_SCHEMA = StructType([
     StructField("feature_image", StringType()),
     StructField("images", ArrayType(StringType())),
 
+    StructField("family_friendly", BooleanType()),
+    StructField("group_friendly", BooleanType()),
+
     StructField("amenities", ArrayType(StringType())),
     StructField("amenity_categories", ArrayType(StringType())),
     StructField("policy", StringType()),           # JSON text
@@ -132,6 +135,9 @@ def ensure_table_exists(spark):
 
             feature_image STRING,
             images ARRAY<STRING>,
+
+            family_friendly BOOLEAN,
+            group_friendly BOOLEAN,
 
             amenities ARRAY<STRING>,
             amenity_categories ARRAY<STRING>,
@@ -303,6 +309,9 @@ def sync_accommodation_details(date_str: str) -> dict:
             t.feature_image = COALESCE(NULLIF(s.feature_image, ''), t.feature_image),
             t.images = CASE WHEN size(s.images) = 0 THEN t.images ELSE s.images END,
 
+            t.family_friendly = COALESCE(s.family_friendly, t.family_friendly),
+            t.group_friendly = COALESCE(s.group_friendly, t.group_friendly),
+
             t.amenities = CASE WHEN size(s.amenities) = 0 THEN t.amenities ELSE s.amenities END,
             t.amenity_categories = CASE WHEN size(s.amenity_categories) = 0 THEN t.amenity_categories ELSE s.amenity_categories END,
             t.policy = COALESCE(NULLIF(s.policy, '{{}}'), t.policy),
@@ -320,7 +329,7 @@ def sync_accommodation_details(date_str: str) -> dict:
             star_rating, review_score, review_score_general, number_of_review,
             bedroom_count, bathroom_count, occupancy, max_occupancy,
             currency, price, min_stay,
-            feature_image, images, amenities, amenity_categories, policy, property_flags,
+            feature_image, images, family_friendly, group_friendly, amenities, amenity_categories, policy, property_flags,
             is_published,
             source_created_at, source_updated_at, raw_data, last_synced_at, created_at
         ) VALUES (
@@ -331,7 +340,7 @@ def sync_accommodation_details(date_str: str) -> dict:
             s.star_rating, s.review_score, s.review_score_general, COALESCE(s.number_of_review, 0),
             s.bedroom_count, s.bathroom_count, s.occupancy, s.max_occupancy,
             COALESCE(s.currency, 'USD'), s.price, COALESCE(s.min_stay, 1),
-            s.feature_image, s.images, s.amenities, s.amenity_categories, s.policy, s.property_flags,
+            s.feature_image, s.images, s.family_friendly, s.group_friendly, s.amenities, s.amenity_categories, s.policy, s.property_flags,
             COALESCE(s.is_published, true),
             current_timestamp(), current_timestamp(), s.raw_data, current_timestamp(), current_timestamp()
         )
