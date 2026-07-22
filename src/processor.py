@@ -231,6 +231,12 @@ def resolve_family_group_flags(raw: dict) -> tuple[bool, bool]:
 
     return family_friendly, group_friendly
 
+def resolve_other_policy(raw: dict) -> str:
+    """description.important_information['en-us'] -> other_policy text"""
+    description = raw.get("description", {}) or {}
+    important_info = description.get("important_information", {}) or {}
+    return (important_info.get("en-us") or "").strip()
+
 
 
 def process_rental_property(raw: dict, search_price_map: dict) -> dict:
@@ -314,6 +320,8 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         "amenity_categories": amenity_categories,
         "policy": resolve_policy(raw, search_info),
         "property_flags": resolve_property_flags(raw),
+
+        "other_policy": resolve_other_policy(raw),
 
         # --- Status -----------------------------------------------------
         "is_published": raw.get("accommodation_status") == "open",

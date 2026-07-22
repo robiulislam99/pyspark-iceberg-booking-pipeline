@@ -92,6 +92,8 @@ RENTAL_PROPERTY_SCHEMA = StructType([
     StructField("policy", StringType()),           # JSON text
     StructField("property_flags", StringType()),   # JSON text
 
+    StructField("other_policy", StringType()),
+
     StructField("is_published", BooleanType()),
     StructField("raw_data", StringType()),          # JSON text
 ])
@@ -143,6 +145,8 @@ def ensure_table_exists(spark):
             amenity_categories ARRAY<STRING>,
             policy STRING,
             property_flags STRING,
+
+            other_policy STRING,
 
             is_published BOOLEAN,
 
@@ -317,6 +321,8 @@ def sync_accommodation_details(date_str: str) -> dict:
             t.policy = COALESCE(NULLIF(s.policy, '{{}}'), t.policy),
             t.property_flags = COALESCE(NULLIF(s.property_flags, '{{}}'), t.property_flags),
 
+            t.other_policy = COALESCE(NULLIF(s.other_policy, ''), t.other_policy),
+            
             t.is_published = COALESCE(s.is_published, t.is_published),
 
             t.source_updated_at = current_timestamp(),
@@ -330,7 +336,7 @@ def sync_accommodation_details(date_str: str) -> dict:
             bedroom_count, bathroom_count, occupancy, max_occupancy,
             currency, price, min_stay,
             feature_image, images, family_friendly, group_friendly, amenities, amenity_categories, policy, property_flags,
-            is_published,
+            other_policy, is_published,
             source_created_at, source_updated_at, raw_data, last_synced_at, created_at
         ) VALUES (
             s.external_id, s.feed, s.feed_provider_id, s.feed_provider_url,
@@ -341,6 +347,7 @@ def sync_accommodation_details(date_str: str) -> dict:
             s.bedroom_count, s.bathroom_count, s.occupancy, s.max_occupancy,
             COALESCE(s.currency, 'USD'), s.price, COALESCE(s.min_stay, 1),
             s.feature_image, s.images, s.family_friendly, s.group_friendly, s.amenities, s.amenity_categories, s.policy, s.property_flags,
+            s.other_policy,
             COALESCE(s.is_published, true),
             current_timestamp(), current_timestamp(), s.raw_data, current_timestamp(), current_timestamp()
         )
