@@ -47,3 +47,5 @@ notebooks/explore_data.ipynb
 
 s3_local/
 dynamodb_data/
+
+hf_cache/
