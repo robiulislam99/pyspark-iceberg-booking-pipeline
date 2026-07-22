@@ -91,10 +91,13 @@ def to_s3_document(row: dict) -> dict:
 
     if images:
         ranked = rank_images(images)
-        document["Property"]["RankedImage"] = ranked[0] if ranked else None
+        top_ranked = ranked[:4]  
+        document["Property"]["RankedImage"] = top_ranked[0] if top_ranked else None
         document["Property"]["RankedImages"] = {
-            "Count": len(ranked),
-            "Images": ranked,
+            "Count": len(top_ranked),
+            "Images": top_ranked,
         }
+
+    return document
 
     return document
