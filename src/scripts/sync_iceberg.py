@@ -26,20 +26,26 @@ Key correspondence to the Django version:
   since a duplicate key in the source would make Iceberg's MERGE INTO
   fail with "matched multiple source rows".
 """
+
 import json
 import logging
 from decimal import Decimal
 
 from pyspark.sql.types import (
-    StructType, StructField, StringType, IntegerType,
-    BooleanType, ArrayType, DecimalType,
+    ArrayType,
+    BooleanType,
+    DecimalType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
 )
 
 from src.clients.spark_session import get_spark
 from src.core.file_locator import (
-    iter_all_accommodation_details,
     build_search_price_map,
     get_changelog_ids,
+    iter_all_accommodation_details,
 )
 from src.core.processor import process_rental_property
 
@@ -48,57 +54,48 @@ logging.basicConfig(level=logging.INFO)
 
 TABLE = "local.booking.rental_property"
 
-RENTAL_PROPERTY_SCHEMA = StructType([
-    StructField("external_id", StringType()),
-    StructField("feed", IntegerType()),
-    StructField("feed_provider_id", StringType()),
-    StructField("feed_provider_url", StringType()),
-
-    StructField("property_name", StringType()),
-    StructField("property_slug", StringType()),
-    StructField("property_type", StringType()),
-    StructField("property_type_category", StringType()),
-    
-    StructField("city", StringType()),
-    StructField("country", StringType()),
-    StructField("country_code", StringType()),
-    StructField("location_display", StringType()),
-    StructField("partner_location_id", StringType()),
-    StructField("latlon", StringType()),   # EWKT text, e.g. 'SRID=4326;POINT (lon lat)'
-
-    StructField("language", StringType()),
-
-    StructField("star_rating", IntegerType()),
-    StructField("review_score", DecimalType(4, 2)),
-    StructField("review_score_general", DecimalType(4, 2)),
-    StructField("number_of_review", IntegerType()),
-    StructField("bedroom_count", IntegerType()),
-    StructField("bathroom_count", IntegerType()),
-    StructField("occupancy", IntegerType()),
-    StructField("max_occupancy", IntegerType()),
-
-    StructField("currency", StringType()),
-    StructField("price", DecimalType(10, 2)),
-    StructField("min_stay", IntegerType()),
-
-    StructField("feature_image", StringType()),
-    StructField("images", ArrayType(StringType())),
-
-    StructField("family_friendly", BooleanType()),
-    StructField("group_friendly", BooleanType()),
-
-    StructField("amenities", ArrayType(StringType())),
-    StructField("amenity_categories", ArrayType(StringType())),
-    StructField("policy", StringType()),           # JSON text
-    StructField("property_flags", StringType()),   # JSON text
-
-    StructField("other_policy", StringType()),
-
-    StructField("feature_summary", StringType()),  # JSON text
-
-    StructField("is_published", BooleanType()),
-    StructField("raw_data", StringType()),          # JSON text
-])
+RENTAL_PROPERTY_SCHEMA = StructType(
+    [
+        StructField("external_id", StringType()),
+        StructField("feed", IntegerType()),
+        StructField("feed_provider_id", StringType()),
+        StructField("feed_provider_url", StringType()),
+        StructField("property_name", StringType()),
+        StructField("property_slug", StringType()),
+        StructField("property_type", StringType()),
+        StructField("property_type_category", StringType()),
+        StructField("city", StringType()),
+        StructField("country", StringType()),
+        StructField("country_code", StringType()),
+        StructField("location_display", StringType()),
+        StructField("partner_location_id", StringType()),
+        StructField("latlon", StringType()),  # EWKT text, e.g. 'SRID=4326;POINT (lon lat)'
+        StructField("language", StringType()),
+        StructField("star_rating", IntegerType()),
+        StructField("review_score", DecimalType(4, 2)),
+        StructField("review_score_general", DecimalType(4, 2)),
+        StructField("number_of_review", IntegerType()),
+        StructField("bedroom_count", IntegerType()),
+        StructField("bathroom_count", IntegerType()),
+        StructField("occupancy", IntegerType()),
+        StructField("max_occupancy", IntegerType()),
+        StructField("currency", StringType()),
+        StructField("price", DecimalType(10, 2)),
+        StructField("min_stay", IntegerType()),
+        StructField("feature_image", StringType()),
+        StructField("images", ArrayType(StringType())),
+        StructField("family_friendly", BooleanType()),
+        StructField("group_friendly", BooleanType()),
+        StructField("amenities", ArrayType(StringType())),
+        StructField("amenity_categories", ArrayType(StringType())),
+        StructField("policy", StringType()),  # JSON text
+        StructField("property_flags", StringType()),  # JSON text
+        StructField("other_policy", StringType()),
+        StructField("feature_summary", StringType()),  # JSON text
+        StructField("is_published", BooleanType()),
+        StructField("raw_data", StringType()),  # JSON text
+    ]
+)
 
 
 def ensure_table_exists(spark):
@@ -162,6 +159,7 @@ def ensure_table_exists(spark):
         ) USING iceberg
     """)
     _sync_schema(spark)
+
 
 def _sync_schema(spark):
     """

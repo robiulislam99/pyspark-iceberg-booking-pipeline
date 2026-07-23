@@ -28,12 +28,12 @@ from datetime import datetime
 from slugify import slugify
 
 from src.core.static_data import (
-    resolve_country_name,
-    resolve_city_name,
-    get_accommodation_type_name_map,
-    get_property_type_category_map,
     get_accommodation_facility_map,
+    get_accommodation_type_name_map,
     get_facility_type_name_map,
+    get_property_type_category_map,
+    resolve_city_name,
+    resolve_country_name,
 )
 
 
@@ -84,7 +84,9 @@ def resolve_images(photos: list) -> tuple[str, list]:
     if not photos:
         return "", []
 
-    images = [p.get("url", {}).get("standard", "") for p in photos if p.get("url", {}).get("standard")]
+    images = [
+        p.get("url", {}).get("standard", "") for p in photos if p.get("url", {}).get("standard")
+    ]
 
     feature_image = ""
     for photo in photos:
@@ -192,6 +194,7 @@ def resolve_policy(raw: dict, search_info: dict) -> dict:
         "free_cancellation": search_info.get("free_cancellation", False),
     }
 
+
 def resolve_eco_friendly(raw: dict) -> bool:
     """
     True if 'eco friendly' or 'eco-friendly' text found in
@@ -215,6 +218,7 @@ def resolve_property_flags(raw: dict) -> dict:
         "adult_only": min_checkin_age is not None and min_checkin_age >= 18,
     }
 
+
 def resolve_family_group_flags(raw: dict) -> tuple[bool, bool]:
     """
     family_friendly = True if children value is not null
@@ -230,6 +234,7 @@ def resolve_family_group_flags(raw: dict) -> tuple[bool, bool]:
     group_friendly = total_guests >= 6
 
     return family_friendly, group_friendly
+
 
 def resolve_other_policy(raw: dict) -> str:
     """description.important_information['en-us'] -> other_policy text"""
@@ -267,8 +272,7 @@ def resolve_feature_summary(facilities: list) -> list:
         grouped.setdefault(category_name, []).append(name)
 
     return [
-        {"name": category, "description": "\n".join(names)}
-        for category, names in grouped.items()
+        {"name": category, "description": "\n".join(names)} for category, names in grouped.items()
     ]
 
 
@@ -307,13 +311,11 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         "feed": 11,
         "feed_provider_id": (str(raw.get("id") or "").strip()),
         "feed_provider_url": (raw.get("url", {}).get("web") or "").strip(),
-
         # --- Basic info -----------------------------------------------------
         "property_name": property_name,
         "property_slug": slugify(property_name),
         "property_type": property_type,
         "property_type_category": property_type_category,
-
         # --- Location -----------------------------------------------------
         "city": resolve_city_name(country_code, city_code),
         "country": resolve_country_name(country_code),
@@ -321,46 +323,38 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         "location_display": (location.get("address", {}).get("en-us") or "").strip(),
         "partner_location_id": raw.get("partner_location_id") or "",
         "latlon": latlon,
-
         # ---Language -----------------------------------------------------
         "language": "en-us",
-
         # --- Ratings & size -----------------------------------------------
         "star_rating": rating.get("stars"),
         "review_score": review_score,
-        "review_score_general": _to_decimal_safe(review_score / 2) if review_score is not None else None,
+        "review_score_general": _to_decimal_safe(review_score / 2)
+        if review_score is not None
+        else None,
         "number_of_review": rating.get("number_of_reviews") or 0,
         "bedroom_count": number_of_rooms.get("bedrooms"),
         "bathroom_count": number_of_rooms.get("bathrooms"),
         "occupancy": maximum_occupancy.get("total_guests"),
         "max_occupancy": maximum_occupancy.get("total_guests"),
-
         # --- Pricing & stay rules -----------------------------------------------
         "currency": search_info.get("currency") or "USD",
         "price": _to_decimal_safe(search_info.get("price")),
         "min_stay": raw.get("min_stay") or 1,
-
         # --- Media -----------------------------------------------------
         "feature_image": feature_image,
         "images": images,
-
         # --- Family/group flags -----------------------------------------------
         "family_friendly": family_friendly,
         "group_friendly": group_friendly,
-
         # --- Nested source data, stored as-is -----------------------------------------------
         "amenities": amenities,
         "amenity_categories": amenity_categories,
         "policy": resolve_policy(raw, search_info),
         "property_flags": resolve_property_flags(raw),
-
         "other_policy": resolve_other_policy(raw),
-
         "feature_summary": resolve_feature_summary(facilities),
-
         # --- Status -----------------------------------------------------
         "is_published": raw.get("accommodation_status") == "open",
-
         # --- Safety net: keep the full original record -----------------------------------------------
         "raw_data": raw,
     }

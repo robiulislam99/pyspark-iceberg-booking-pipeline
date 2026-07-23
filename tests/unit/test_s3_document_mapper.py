@@ -4,6 +4,7 @@ is mocked -- this test verifies FIELD MAPPING logic only, not the real
 model's scoring behavior (that belongs in a separate, explicit test for
 core.image_ranker, run rarely/manually since it needs network + model).
 """
+
 from mappers.s3_document_mapper import to_s3_document
 
 
@@ -34,8 +35,18 @@ def test_ranked_image_uses_top_analyzed_result(iceberg_row, mocker):
     mocker.patch(
         "mappers.s3_document_mapper.analyze_images",
         return_value=[
-            {"url": "https://example.com/best.jpg", "aesthetic_score": 9.1, "label": "bedroom", "label_confidence": 0.9},
-            {"url": "https://example.com/worst.jpg", "aesthetic_score": 3.2, "label": "bathroom", "label_confidence": 0.7},
+            {
+                "url": "https://example.com/best.jpg",
+                "aesthetic_score": 9.1,
+                "label": "bedroom",
+                "label_confidence": 0.9,
+            },
+            {
+                "url": "https://example.com/worst.jpg",
+                "aesthetic_score": 3.2,
+                "label": "bathroom",
+                "label_confidence": 0.7,
+            },
         ],
     )
     document = to_s3_document(iceberg_row)

@@ -24,9 +24,10 @@ container has no Django installed.
 
 import json
 import os
+from collections.abc import Iterator
 from datetime import date as date_type
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import Literal
 
 FeedName = Literal["accommodation_details", "reviews", "reviews_scores", "search"]
 Bucket = Literal["changed", "opened"]
@@ -41,7 +42,9 @@ def format_date(d: date_type) -> str:
     return d.strftime("%Y%m%d")
 
 
-def get_changelog_ids(date_str: str, kind: Literal["changed", "opened", "closed"] = "changed") -> list:
+def get_changelog_ids(
+    date_str: str, kind: Literal["changed", "opened", "closed"] = "changed"
+) -> list:
     """
     Read changelog/<date>/booking_<kind>_*.json -- a flat list of
     property IDs. `kind` is one of:
@@ -131,7 +134,8 @@ def build_search_price_map(date_str: str) -> dict:
 
             products = record.get("products") or []
             free_cancellation = any(
-                product.get("policies", {}).get("cancellation", {}).get("type") == "free_cancellation"
+                product.get("policies", {}).get("cancellation", {}).get("type")
+                == "free_cancellation"
                 for product in products
             )
 

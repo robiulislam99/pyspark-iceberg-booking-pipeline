@@ -5,6 +5,7 @@ and ERROR-HANDLING logic, not real model accuracy (which can't be
 meaningfully unit-tested anyway -- there's no "correct" aesthetic score
 to assert against).
 """
+
 from PIL import Image
 
 from core import image_ranker
@@ -15,10 +16,14 @@ def _fake_image():
 
 
 def test_rank_images_orders_best_to_worst(mocker):
-    mocker.patch.object(image_ranker, "_download_image" if hasattr(image_ranker, "_download_image") else "_score_image")
+    mocker.patch.object(
+        image_ranker,
+        "_download_image" if hasattr(image_ranker, "_download_image") else "_score_image",
+    )
     # _score_image does download + score together; patch it directly with per-url side effects
     mocker.patch.object(
-        image_ranker, "_score_image",
+        image_ranker,
+        "_score_image",
         side_effect=[0.2, 0.9, 0.5],
     )
 
@@ -29,7 +34,8 @@ def test_rank_images_orders_best_to_worst(mocker):
 
 def test_rank_images_skips_failed_downloads(mocker, capsys):
     mocker.patch.object(
-        image_ranker, "_score_image",
+        image_ranker,
+        "_score_image",
         side_effect=[0.8, Exception("404 Client Error"), 0.3],
     )
 
@@ -64,7 +70,8 @@ def test_analyze_image_rescales_aesthetic_score_to_ten(mocker):
 
 def test_analyze_images_sorts_by_aesthetic_score(mocker):
     mocker.patch.object(
-        image_ranker, "analyze_image",
+        image_ranker,
+        "analyze_image",
         side_effect=[
             {"url": "a", "aesthetic_score": 3.0, "label": "house", "label_confidence": 0.5},
             {"url": "b", "aesthetic_score": 9.0, "label": "pool", "label_confidence": 0.9},

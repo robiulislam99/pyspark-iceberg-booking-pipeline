@@ -6,8 +6,8 @@ the same way it would against real S3 -- swapping this for a real
 boto3.client("s3", ...) later requires no logic changes elsewhere,
 only construction of a different client instance.
 """
+
 import os
-import json
 from pathlib import Path
 
 S3_LOCAL_ROOT = os.environ.get("S3_LOCAL_ROOT", "/app/s3_local")
@@ -45,10 +45,12 @@ class LocalS3Client:
             for file_path in search_root.rglob("*.json"):
                 key = str(file_path.relative_to(bucket_root))
                 if key.startswith(Prefix):
-                    contents.append({
-                        "Key": key,
-                        "Size": file_path.stat().st_size,
-                    })
+                    contents.append(
+                        {
+                            "Key": key,
+                            "Size": file_path.stat().st_size,
+                        }
+                    )
         return {"Contents": contents, "KeyCount": len(contents)}
 
     def delete_object(self, Bucket: str, Key: str):
@@ -60,6 +62,7 @@ class LocalS3Client:
 
 class _BytesReader:
     """Mimics boto3's StreamingBody -- supports .read()."""
+
     def __init__(self, data: bytes):
         self._data = data
 

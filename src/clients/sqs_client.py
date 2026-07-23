@@ -2,8 +2,10 @@
 Thin boto3 wrapper pointed at LocalStack's SQS emulation instead of real
 AWS -- no AWS account or credentials needed, endpoint_url does all the work.
 """
-import os
+
 import json
+import os
+
 import boto3
 
 SQS_ENDPOINT_URL = os.environ.get("SQS_ENDPOINT_URL", "http://localstack:4566")

@@ -7,12 +7,13 @@ maps them, and bulk-upserts into Elasticsearch.
 Run:  python sqs_consumer.py
 Stop: Ctrl+C
 """
+
 import json
 import logging
 
+from src.clients.es_client import bulk_upsert, get_es_client
 from src.clients.spark_session import get_spark
-from src.clients.sqs_client import receive_messages, delete_message
-from src.clients.es_client import get_es_client, bulk_upsert
+from src.clients.sqs_client import delete_message, receive_messages
 from src.mappers.es_document_mapper import to_es_document
 
 logger = logging.getLogger("booking_lake.sqs_consumer")

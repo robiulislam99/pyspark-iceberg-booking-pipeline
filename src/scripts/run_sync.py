@@ -3,10 +3,11 @@ Mirrors sync_booking_properties.py management command, then publishes
 an SQS event listing which feed_provider_ids changed, for the consumer
 to pick up and push into Elasticsearch.
 """
+
 import sys
 
-from src.scripts.sync_iceberg import sync_accommodation_details
 from src.clients.sqs_client import publish_sync_event
+from src.scripts.sync_iceberg import sync_accommodation_details
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

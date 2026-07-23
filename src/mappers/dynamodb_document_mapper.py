@@ -9,9 +9,6 @@ Only fields present in the Iceberg table are mapped:
   "english" -- flagging this as an assumption, not a real mapped field.
 """
 
-
-
-
 from decimal import Decimal
 
 

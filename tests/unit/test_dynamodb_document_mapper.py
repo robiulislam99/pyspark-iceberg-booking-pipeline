@@ -1,6 +1,7 @@
 """
 Unit tests for mappers.dynamodb_document_mapper.
 """
+
 from decimal import Decimal
 
 from mappers.dynamodb_document_mapper import to_dynamodb_item

@@ -1,4 +1,5 @@
 import os
+
 from elasticsearch import Elasticsearch, helpers
 
 ES_URL = os.environ.get("ELASTICSEARCH_URL", "http://elasticsearch:9200")

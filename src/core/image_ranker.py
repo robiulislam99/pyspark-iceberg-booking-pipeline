@@ -15,7 +15,9 @@ Both models download once from Hugging Face's hub (~350MB + ~600MB) the
 first time they're used, then are cached (see hf_cache/ volume mount) --
 no GPU, no API key, no paid account needed.
 """
+
 import io
+
 import requests
 from PIL import Image
 from transformers import pipeline
@@ -36,7 +38,9 @@ def _get_aesthetic_classifier():
 def _get_room_classifier():
     global _room_classifier
     if _room_classifier is None:
-        _room_classifier = pipeline("zero-shot-image-classification", model="openai/clip-vit-base-patch32")
+        _room_classifier = pipeline(
+            "zero-shot-image-classification", model="openai/clip-vit-base-patch32"
+        )
     return _room_classifier
 
 

@@ -12,7 +12,7 @@ Ported from the Django version -- only change is the data dir source
 
 import json
 import os
-from functools import lru_cache
+from functools import cache, lru_cache
 from pathlib import Path
 
 
@@ -59,7 +59,7 @@ def get_constants() -> dict:
     return _load_json("static/constants.json")
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_location_mapping(country_code: str, location_type: str) -> dict:
     """
     Resolve negative location IDs to names for one country.
@@ -130,7 +130,7 @@ def resolve_country_name(country_code: str) -> str:
     return get_country_name_map().get(country_code.lower(), "")
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_city_name_map(country_code: str) -> dict:
     """
     Normalized: city_code -> city name, for one country.
@@ -180,8 +180,7 @@ def get_facility_type_name_map() -> dict:
     raw = get_constants()
     facility_types = raw.get("facility_types", {})
     return {
-        type_id: entry.get("name", {}).get("en-us", "")
-        for type_id, entry in facility_types.items()
+        type_id: entry.get("name", {}).get("en-us", "") for type_id, entry in facility_types.items()
     }
 
 

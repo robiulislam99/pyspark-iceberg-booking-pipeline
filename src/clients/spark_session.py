@@ -13,11 +13,12 @@ mature, widely deployed project with its own documented pattern for
 writing GEOMETRY columns straight into Iceberg v3 tables, which is what
 we use here.
 """
+
 from pyspark.sql import SparkSession
 from sedona.spark import SedonaContext
 
-ICEBERG_VERSION = "1.9.1"          # first widely-used release with solid v3/geometry table support
-SEDONA_VERSION = "1.6.1"           # documented, stable pairing with Spark 3.5
+ICEBERG_VERSION = "1.9.1"  # first widely-used release with solid v3/geometry table support
+SEDONA_VERSION = "1.6.1"  # documented, stable pairing with Spark 3.5
 
 ICEBERG_PACKAGE = f"org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:{ICEBERG_VERSION}"
 SEDONA_PACKAGE = f"org.apache.sedona:sedona-spark-shaded-3.5_2.12:{SEDONA_VERSION}"
@@ -27,8 +28,7 @@ WAREHOUSE_PATH = "file:///app/warehouse"
 
 def get_spark(app_name: str = "booking-etl") -> SparkSession:
     config = (
-        SparkSession.builder
-        .appName(app_name)
+        SparkSession.builder.appName(app_name)
         .config("spark.jars.packages", f"{ICEBERG_PACKAGE},{SEDONA_PACKAGE}")
         .config(
             "spark.sql.extensions",
@@ -45,6 +45,6 @@ def get_spark(app_name: str = "booking-etl") -> SparkSession:
         .master("local[*]")
         .getOrCreate()
     )
-    #SedonaContext.create() registers Sedona's UDTs/functions on top of
+    # SedonaContext.create() registers Sedona's UDTs/functions on top of
     # the session above; it returns the same session, just Sedona-aware.
     return SedonaContext.create(config)

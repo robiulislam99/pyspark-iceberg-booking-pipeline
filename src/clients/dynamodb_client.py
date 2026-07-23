@@ -8,7 +8,9 @@ lets you store one item per (property, sync date) pair, so you can see
 a property's history over time rather than only its latest state,
 which is a common real-world DynamoDB access pattern worth practicing.
 """
+
 import os
+
 import boto3
 
 ENDPOINT_URL = os.environ.get("DYNAMODB_ENDPOINT_URL", "http://dynamodb-local:8000")

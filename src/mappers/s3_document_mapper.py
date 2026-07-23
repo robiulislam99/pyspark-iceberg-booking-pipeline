@@ -12,8 +12,10 @@ RankedImage/RankedImages ARE included, via image_ranker.rank_images() --
 a Hugging Face aesthetic-scoring model ranks each property's photos
 best-to-worst by visual quality alone (not by description/room content).
 """
+
 import json
 import re
+
 from src.core.image_ranker import analyze_images
 
 _POINT_RE = re.compile(r"POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)")
@@ -49,7 +51,9 @@ def to_s3_document(row: dict) -> dict:
         "Partner": {
             "Amenities": row.get("amenities") or [],
             "Policies": {
-                "CancellationPolicy": "Free cancellation" if policy.get("free_cancellation") else "No free cancellation",
+                "CancellationPolicy": "Free cancellation"
+                if policy.get("free_cancellation")
+                else "No free cancellation",
                 "CheckinPolicy": policy.get("checkin_age_policy_text"),
                 "PetPolicy": policy.get("pets_policy_text"),
             },
@@ -69,7 +73,7 @@ def to_s3_document(row: dict) -> dict:
                 "Count": len(images),
                 "Images": images,
             },
-            "RankedImage": None,       # filled in below, after ranking
+            "RankedImage": None,  # filled in below, after ranking
             "RankedImages": {
                 "Count": 0,
                 "Images": [],
@@ -82,7 +86,9 @@ def to_s3_document(row: dict) -> dict:
             "PropertyName": row.get("property_name"),
             "PropertySlug": row.get("property_slug"),
             "PropertyType": row.get("property_type"),
-            "ReviewScore": float(row["review_score_general"]) if row.get("review_score_general") is not None else None,
+            "ReviewScore": float(row["review_score_general"])
+            if row.get("review_score_general") is not None
+            else None,
             "StarRating": row.get("star_rating"),
             "UpdatedAt": row["last_synced_at"].isoformat() if row.get("last_synced_at") else None,
             "WorkFriendlyHome": property_flags.get("work_friendly_home", False),

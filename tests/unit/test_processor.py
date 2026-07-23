@@ -2,17 +2,16 @@
 Unit tests for core.processor -- all pure functions, no I/O, so no
 mocking is needed here at all.
 """
+
 import pytest
 
 from core.processor import (
-    resolve_latlon,
-    resolve_images,
-    resolve_amenities,
-    resolve_pets_policy,
-    resolve_checkin_age_policy,
-    resolve_property_flags,
     get_first_room,
     process_rental_property,
+    resolve_checkin_age_policy,
+    resolve_images,
+    resolve_latlon,
+    resolve_pets_policy,
 )
 
 
@@ -55,20 +54,26 @@ class TestResolveImages:
 
 
 class TestResolvePoliciesText:
-    @pytest.mark.parametrize("allowed,expected", [
-        ("yes", "Pets are allowed"),
-        ("no", "Pets are not allowed"),
-        (None, "Pet policy not specified"),
-    ])
+    @pytest.mark.parametrize(
+        "allowed,expected",
+        [
+            ("yes", "Pets are allowed"),
+            ("no", "Pets are not allowed"),
+            (None, "Pet policy not specified"),
+        ],
+    )
     def test_pets_policy_text(self, allowed, expected):
         assert resolve_pets_policy({"pets": {"allowed": allowed}}) == expected
 
-    @pytest.mark.parametrize("min_age,expected", [
-        (18, "Only adults are allowed to check in"),
-        (25, "Only adults are allowed to check in"),
-        (0, "Anyone can check in"),
-        (None, "Anyone can check in"),
-    ])
+    @pytest.mark.parametrize(
+        "min_age,expected",
+        [
+            (18, "Only adults are allowed to check in"),
+            (25, "Only adults are allowed to check in"),
+            (0, "Anyone can check in"),
+            (None, "Anyone can check in"),
+        ],
+    )
     def test_checkin_age_policy_text(self, min_age, expected):
         assert resolve_checkin_age_policy({"minimum_checkin_age": min_age}) == expected
 
@@ -105,7 +110,9 @@ class TestProcessRentalProperty:
         result = process_rental_property(raw_accommodation_record, search_price_map)
         assert result["property_slug"] == "villa-palmilla"
 
-    def test_is_published_reflects_accommodation_status(self, raw_accommodation_record, search_price_map):
+    def test_is_published_reflects_accommodation_status(
+        self, raw_accommodation_record, search_price_map
+    ):
         raw_accommodation_record["accommodation_status"] = "closed_temporarily"
         result = process_rental_property(raw_accommodation_record, search_price_map)
         assert result["is_published"] is False

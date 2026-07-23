@@ -2,6 +2,7 @@
 Shared fixtures for all unit tests. Fixtures here are automatically
 available to every test file under tests/ -- no import needed.
 """
+
 import pytest
 
 
@@ -26,10 +27,12 @@ def raw_accommodation_record():
             "coordinates": {"latitude": 27.797983, "longitude": -97.085391},
         },
         "rating": {"stars": 3, "review_score": 0, "number_of_reviews": 0},
-        "rooms": [{
-            "number_of_rooms": {"bedrooms": 4, "bathrooms": 4},
-            "maximum_occupancy": {"total_guests": 12},
-        }],
+        "rooms": [
+            {
+                "number_of_rooms": {"bedrooms": 4, "bathrooms": 4},
+                "maximum_occupancy": {"total_guests": 12},
+            }
+        ],
         "photos": [
             {"main_photo": True, "url": {"standard": "https://example.com/1.jpg"}},
             {"main_photo": False, "url": {"standard": "https://example.com/2.jpg"}},
@@ -87,18 +90,22 @@ def iceberg_row():
         "images": ["https://example.com/1.jpg", "https://example.com/2.jpg"],
         "amenities": ["Parking"],
         "amenity_categories": ["General"],
-        "policy": json.dumps({
-            "pets_allowed": False,
-            "pets_policy_text": "Pets are not allowed",
-            "adults_only_checkin": True,
-            "checkin_age_policy_text": "Only adults are allowed to check in",
-            "minimum_checkin_age": 18,
-            "free_cancellation": True,
-        }),
-        "property_flags": json.dumps({
-            "work_friendly_home": False,
-            "long_stay_friendly_home": True,
-        }),
+        "policy": json.dumps(
+            {
+                "pets_allowed": False,
+                "pets_policy_text": "Pets are not allowed",
+                "adults_only_checkin": True,
+                "checkin_age_policy_text": "Only adults are allowed to check in",
+                "minimum_checkin_age": 18,
+                "free_cancellation": True,
+            }
+        ),
+        "property_flags": json.dumps(
+            {
+                "work_friendly_home": False,
+                "long_stay_friendly_home": True,
+            }
+        ),
         "is_published": True,
         "last_synced_at": datetime(2026, 5, 29, 4, 18, 51),
         "raw_data": json.dumps({}),

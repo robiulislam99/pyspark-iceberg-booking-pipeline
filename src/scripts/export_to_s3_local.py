@@ -6,11 +6,12 @@ against real boto3 S3, just backed by the filesystem.
 
 Usage: python export_to_s3_local.py 20260714
 """
-import sys
-import json
 
-from src.clients.spark_session import get_spark
+import json
+import sys
+
 from src.clients.s3_local_client import LocalS3Client
+from src.clients.spark_session import get_spark
 from src.mappers.s3_document_mapper import to_s3_document
 
 TABLE = "local.booking.rental_property"

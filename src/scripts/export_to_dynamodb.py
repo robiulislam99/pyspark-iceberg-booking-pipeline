@@ -13,6 +13,7 @@ scales: collect() would eventually crash the driver on a large enough
 table, foreachPartition() never brings more than one partition's worth
 of rows into any single process at a time.
 """
+
 import sys
 
 from src.clients.spark_session import get_spark
@@ -56,7 +57,9 @@ def export_date(spark, date_str: str):
         return
 
     df.foreachPartition(_export_partition)
-    print(f"Wrote {row_count} item(s) to DynamoDB Local table 'rental_properties' for date={date_str}")
+    print(
+        f"Wrote {row_count} item(s) to DynamoDB Local table 'rental_properties' for date={date_str}"
+    )
 
 
 if __name__ == "__main__":
