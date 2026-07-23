@@ -14,7 +14,7 @@ best-to-worst by visual quality alone (not by description/room content).
 """
 import json
 import re
-from src.core.image_ranker import rank_images
+from src.core.image_ranker import analyze_images
 
 _POINT_RE = re.compile(r"POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)")
 
@@ -74,6 +74,7 @@ def to_s3_document(row: dict) -> dict:
                 "Count": 0,
                 "Images": [],
             },
+            "ImageAnalysis": [],
             "IsPetFriendly": policy.get("pets_allowed", False),
             "LongStayFriendlyHome": property_flags.get("long_stay_friendly_home", False),
             "MinStay": row.get("min_stay"),
@@ -90,14 +91,26 @@ def to_s3_document(row: dict) -> dict:
     }
 
     if images:
-        ranked = rank_images(images)
-        top_ranked = ranked[:4]  
+        analyses = analyze_images(images)
+        ranked = [item["url"] for item in analyses]
+        top_ranked = ranked[:4]
         document["Property"]["RankedImage"] = top_ranked[0] if top_ranked else None
         document["Property"]["RankedImages"] = {
             "Count": len(top_ranked),
             "Images": top_ranked,
         }
-
-    return document
+        document["Property"]["ImageAnalysis"] = [
+            {
+                "Url": item.get("url"),
+                "AestheticScore": item.get("aesthetic_score"),
+                "Label": item.get("label"),
+                "LabelConfidence": item.get("label_confidence"),
+                "url": item.get("url"),
+                "aesthetic_score": item.get("aesthetic_score"),
+                "label": item.get("label"),
+                "label_confidence": item.get("label_confidence"),
+            }
+            for item in analyses
+        ]
 
     return document

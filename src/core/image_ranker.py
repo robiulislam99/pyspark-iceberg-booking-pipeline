@@ -99,6 +99,14 @@ def analyze_images(image_urls: list, labels: list = ROOM_LABELS) -> list:
     return results
 
 
+def _score_image(image_url: str) -> float:
+    """Download an image and score its aesthetic quality using the classifier."""
+    image = _download_image(image_url)
+    classifier = _get_aesthetic_classifier()
+    results = classifier(image)
+    return next((r["score"] for r in results if r["label"] == "aesthetic"), 0.0)
+
+
 def rank_images_with_scores(image_urls: list) -> list:
     """
     Backward-compatible: aesthetic-only ranking, (url, score) tuples,
@@ -108,11 +116,7 @@ def rank_images_with_scores(image_urls: list) -> list:
     scored = []
     for url in image_urls:
         try:
-            image = _download_image(url)
-            classifier = _get_aesthetic_classifier()
-            results = classifier(image)
-            raw_score = next((r["score"] for r in results if r["label"] == "aesthetic"), 0.0)
-            scored.append((url, raw_score))
+            scored.append((url, _score_image(url)))
         except Exception as e:
             print(f"Skipping {url}: {e}")
 
