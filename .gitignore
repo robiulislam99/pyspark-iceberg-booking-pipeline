@@ -49,3 +49,5 @@ s3_local/
 dynamodb_data/
 
 hf_cache/
+
+export_log.txt
