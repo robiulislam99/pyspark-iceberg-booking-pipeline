@@ -4,6 +4,8 @@ services:
     container_name: booking-lake-spark
     volumes:
       - ./src:/app/src
+      - ./tests:/app/tests
+      - ./pyproject.toml:/app/pyproject.toml
       - ./data/warehouse:/app/warehouse
       - ./data/scheduler_data:/app/scheduler_data
       - ./notebooks:/app/notebooks
