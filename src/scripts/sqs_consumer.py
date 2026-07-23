@@ -10,10 +10,10 @@ Stop: Ctrl+C
 import json
 import logging
 
-from spark_session import get_spark
-from sqs_client import receive_messages, delete_message
-from es_client import get_es_client, bulk_upsert
-from es_document_mapper import to_es_document
+from src.clients.spark_session import get_spark
+from src.clients.sqs_client import receive_messages, delete_message
+from src.clients.es_client import get_es_client, bulk_upsert
+from src.mappers.es_document_mapper import to_es_document
 
 logger = logging.getLogger("booking_lake.sqs_consumer")
 logging.basicConfig(level=logging.INFO)

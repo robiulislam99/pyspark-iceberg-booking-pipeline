@@ -4,18 +4,18 @@ services:
     container_name: booking-lake-spark
     volumes:
       - ./src:/app/src
-      - ./warehouse:/app/warehouse
-      - ./scheduler_data:/app/scheduler_data
+      - ./data/warehouse:/app/warehouse
+      - ./data/scheduler_data:/app/scheduler_data
       - ./notebooks:/app/notebooks
-      - ./booking:/app/booking_data:ro
-      - ./ivy_cache:/root/.ivy2
-      - ./s3_local:/app/s3_local
-      - ./hf_cache:/root/.cache/huggingface
+      - ./data/booking:/app/booking_data:ro
+      - ./.cache/ivy_cache:/root/.ivy2
+      - ./data/s3_local:/app/s3_local
+      - ./.cache/hf_cache:/root/.cache/huggingface
     environment:
       - BOOKING_DATA_DIR=/app/booking_data
       - HF_HOME=/root/.cache/huggingface
       - SCHEDULER_DB_PATH=/app/scheduler_data/scheduler.db
-      - PYTHONPATH=/app/src
+      - PYTHONPATH=/app:/app/src
       - S3_LOCAL_ROOT=/app/s3_local
       - SQS_ENDPOINT_URL=http://localstack:4566
       - SQS_QUEUE_NAME=booking-property-updates
@@ -43,7 +43,7 @@ services:
       - SERVICES=sqs
       - DEFAULT_REGION=us-east-1
     volumes:
-      - ./localstack_data:/var/lib/localstack
+      - ./data/localstack_data:/var/lib/localstack
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
@@ -55,7 +55,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - ./es_data:/usr/share/elasticsearch/data
+      - ./data/es_data:/usr/share/elasticsearch/data
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.0
@@ -75,7 +75,7 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - ./dynamodb_data:/data
+      - ./data/dynamodb_data:/data
 
   
   dynamodb-admin:

@@ -9,9 +9,9 @@ Usage: python export_to_s3_local.py 20260714
 import sys
 import json
 
-from spark_session import get_spark
-from s3_local_client import LocalS3Client
-from s3_document_mapper import to_s3_document
+from src.clients.spark_session import get_spark
+from src.clients.s3_local_client import LocalS3Client
+from src.mappers.s3_document_mapper import to_s3_document
 
 TABLE = "local.booking.rental_property"
 BUCKET_NAME = "booking-lake-bucket"

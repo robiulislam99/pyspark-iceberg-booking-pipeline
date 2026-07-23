@@ -15,8 +15,8 @@ of rows into any single process at a time.
 """
 import sys
 
-from spark_session import get_spark
-from file_locator import get_changelog_ids
+from src.clients.spark_session import get_spark
+from src.core.file_locator import get_changelog_ids
 
 TABLE = "local.booking.rental_property"
 
@@ -28,8 +28,8 @@ def _export_partition(rows):
     the function because this code runs on worker processes, which
     don't share the driver's already-imported modules.
     """
-    from dynamodb_client import batch_put_items
-    from dynamodb_document_mapper import to_dynamodb_item
+    from src.clients.dynamodb_client import batch_put_items
+    from src.mappers.dynamodb_document_mapper import to_dynamodb_item
 
     items = [to_dynamodb_item(row.asDict()) for row in rows]
     items = [item for item in items if item["property_id"] and item["timestamp"]]

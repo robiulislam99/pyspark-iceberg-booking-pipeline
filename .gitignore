@@ -5,6 +5,11 @@ __pycache__/
 .venv/
 venv/
 env/
+*.tmp
+
+# Project data and caches
+data/
+.cache/
 
 # Spark / Ivy jar cache
 .ivy2/

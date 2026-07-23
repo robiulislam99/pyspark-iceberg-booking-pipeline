@@ -19,14 +19,14 @@ in Docker.
 ## Prerequisites
 
 - Docker + Docker Compose
-- `booking/` data folder placed at `./booking` (sibling of `src/`)
+- `booking/` data folder placed at `./data/booking` (sibling of `src/`)
 
 ## First-time setup
 
 ```bash
-mkdir -p warehouse scheduler_data notebooks ivy_cache s3_local \
-         dynamodb_data localstack_data es_data hf_cache
-touch warehouse/.gitkeep
+mkdir -p data/warehouse data/scheduler_data notebooks .cache/ivy_cache data/s3_local \
+         data/dynamodb_data data/localstack_data data/es_data .cache/hf_cache
+touch data/warehouse/.gitkeep
 
 docker compose build
 docker compose up -d
@@ -48,7 +48,7 @@ Ports:
 ## 1. Sync: JSON feed → Iceberg
 
 ```bash
-docker compose exec spark python /app/src/run_sync.py 20260714
+docker compose exec spark python /app/src/scripts/run_sync.py 20260714
 ```
 
 Publishes an SQS event with changed `feed_provider_id`s on success.
@@ -56,7 +56,7 @@ Publishes an SQS event with changed `feed_provider_id`s on success.
 Verify:
 ```bash
 docker compose exec spark python -c "
-from spark_session import get_spark
+from src.clients.spark_session import get_spark
 spark = get_spark()
 spark.sql('SELECT COUNT(*) FROM local.booking.rental_property').show()
 "
@@ -66,7 +66,7 @@ spark.sql('SELECT COUNT(*) FROM local.booking.rental_property').show()
 
 Run in its own terminal, keep running:
 ```bash
-docker compose exec spark python /app/src/sqs_consumer.py
+docker compose exec spark python /app/src/scripts/sqs_consumer.py
 ```
 
 Verify:
@@ -86,7 +86,7 @@ curl http://localhost:9200/rental_properties/_mapping/field/lonlat
 ## 4. Export: Iceberg → local S3
 
 ```bash
-docker compose exec spark python /app/src/export_to_s3_local.py 20260714
+docker compose exec spark python /app/src/scripts/export_to_s3_local.py 20260714
 ```
 
 Includes `RankedImage`/`RankedImages` (top 4 by aesthetic score) and
@@ -96,20 +96,20 @@ Hugging Face models — slow, one download + two model passes per photo.
 
 Verify:
 ```bash
-ls s3_local/booking-lake-bucket/rental-properties/date=20260714/ | wc -l
-cat s3_local/booking-lake-bucket/rental-properties/date=20260714/BC-<id>.json
+ls data/s3_local/booking-lake-bucket/rental-properties/date=20260714/ | wc -l
+cat data/s3_local/booking-lake-bucket/rental-properties/date=20260714/BC-<id>.json
 ```
 
 ## 5. Export: Iceberg → DynamoDB
 
 ```bash
-docker compose exec spark python /app/src/export_to_dynamodb.py 20260714
+docker compose exec spark python /app/src/scripts/export_to_dynamodb.py 20260714
 ```
 
 Verify: open http://localhost:8002, or:
 ```bash
 docker compose exec spark python -c "
-from dynamodb_client import get_table
+from src.clients.dynamodb_client import get_table
 print(get_table().scan()['Count'], 'items')
 "
 ```
@@ -118,8 +118,8 @@ print(get_table().scan()['Count'], 'items')
 
 ```bash
 docker compose exec spark python -c "
-from spark_session import get_spark
-from snapshot_diff import diff_snapshots
+from src.clients.spark_session import get_spark
+from src.core.snapshot_diff import diff_snapshots
 spark = get_spark()
 snaps = spark.sql('SELECT snapshot_id FROM local.booking.rental_property.snapshots ORDER BY committed_at').collect()
 diff_snapshots(spark, snaps[-2]['snapshot_id'], snaps[-1]['snapshot_id'])
@@ -151,7 +151,7 @@ docker compose down
 **Sedona jar corrupted / `ClassNotFoundException`**
 ```bash
 docker compose exec spark rm -rf /root/.ivy2
-docker compose exec spark python /app/src/run_sync.py 20260714
+docker compose exec spark python /app/src/scripts/run_sync.py 20260714
 ```
 
 **ES `lonlat` mapped as `float` instead of `geo_point`**

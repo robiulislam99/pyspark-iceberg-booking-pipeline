@@ -35,13 +35,13 @@ from pyspark.sql.types import (
     BooleanType, ArrayType, DecimalType,
 )
 
-from spark_session import get_spark
-from file_locator import (
+from src.clients.spark_session import get_spark
+from src.core.file_locator import (
     iter_all_accommodation_details,
     build_search_price_map,
     get_changelog_ids,
 )
-from processor import process_rental_property
+from src.core.processor import process_rental_property
 
 logger = logging.getLogger("booking_lake.sync")
 logging.basicConfig(level=logging.INFO)

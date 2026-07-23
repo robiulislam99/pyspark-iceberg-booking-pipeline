@@ -5,8 +5,8 @@ to pick up and push into Elasticsearch.
 """
 import sys
 
-from sync_iceberg import sync_accommodation_details
-from sqs_client import publish_sync_event
+from src.scripts.sync_iceberg import sync_accommodation_details
+from src.clients.sqs_client import publish_sync_event
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

@@ -27,7 +27,7 @@ from datetime import datetime
 
 from slugify import slugify
 
-from static_data import (
+from src.core.static_data import (
     resolve_country_name,
     resolve_city_name,
     get_accommodation_type_name_map,

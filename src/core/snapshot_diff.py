@@ -6,7 +6,7 @@ Usage (inside the container or a notebook):
     from snapshot_diff import diff_snapshots
     diff_snapshots(spark, old_snapshot_id, new_snapshot_id)
 """
-from spark_session import get_spark
+from src.clients.spark_session import get_spark
 
 TABLE = "local.booking.rental_property"
 
