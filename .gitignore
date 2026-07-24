@@ -11,6 +11,17 @@ env/
 data/
 .cache/
 
+# Test / lint / coverage artifacts
+.pytest_cache/
+.ruff_cache/
+.sonar/
+sonarqube/
+ruff-report.json
+tests/coverage.xml
+.coverage
+.coverage.*
+htmlcov/
+
 # Spark / Ivy jar cache
 .ivy2/
 ivy_cache/
