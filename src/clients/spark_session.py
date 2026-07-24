@@ -32,8 +32,7 @@ def get_spark(app_name: str = "booking-etl") -> SparkSession:
         .config("spark.jars.packages", f"{ICEBERG_PACKAGE},{SEDONA_PACKAGE}")
         .config(
             "spark.sql.extensions",
-            "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,"
-            "org.apache.sedona.sql.SedonaSqlExtensions",
+            "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions," "org.apache.sedona.sql.SedonaSqlExtensions",
         )
         .config("spark.sql.catalog.local", "org.apache.iceberg.spark.SparkCatalog")
         .config("spark.sql.catalog.local.type", "hadoop")

@@ -51,9 +51,7 @@ def to_es_document(row: dict) -> dict:
         "display": row.get("location_display"),
         "lonlat": _parse_lonlat(row.get("latlon")),
         "star_rating": row.get("star_rating"),
-        "review_score_general": float(row["review_score_general"])
-        if row.get("review_score_general") is not None
-        else None,
+        "review_score_general": float(row["review_score_general"]) if row.get("review_score_general") is not None else None,
         "number_of_review": row.get("number_of_review"),
         "bedroom_count": row.get("bedroom_count"),
         "bathroom_count": row.get("bathroom_count"),

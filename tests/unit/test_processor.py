@@ -110,9 +110,7 @@ class TestProcessRentalProperty:
         result = process_rental_property(raw_accommodation_record, search_price_map)
         assert result["property_slug"] == "villa-palmilla"
 
-    def test_is_published_reflects_accommodation_status(
-        self, raw_accommodation_record, search_price_map
-    ):
+    def test_is_published_reflects_accommodation_status(self, raw_accommodation_record, search_price_map):
         raw_accommodation_record["accommodation_status"] = "closed_temporarily"
         result = process_rental_property(raw_accommodation_record, search_price_map)
         assert result["is_published"] is False

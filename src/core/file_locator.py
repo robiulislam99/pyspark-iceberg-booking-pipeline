@@ -42,9 +42,7 @@ def format_date(d: date_type) -> str:
     return d.strftime("%Y%m%d")
 
 
-def get_changelog_ids(
-    date_str: str, kind: Literal["changed", "opened", "closed"] = "changed"
-) -> list:
+def get_changelog_ids(date_str: str, kind: Literal["changed", "opened", "closed"] = "changed") -> list:
     """
     Read changelog/<date>/booking_<kind>_*.json -- a flat list of
     property IDs. `kind` is one of:
@@ -134,9 +132,7 @@ def build_search_price_map(date_str: str) -> dict:
 
             products = record.get("products") or []
             free_cancellation = any(
-                product.get("policies", {}).get("cancellation", {}).get("type")
-                == "free_cancellation"
-                for product in products
+                product.get("policies", {}).get("cancellation", {}).get("type") == "free_cancellation" for product in products
             )
 
             price_map[record_id] = {

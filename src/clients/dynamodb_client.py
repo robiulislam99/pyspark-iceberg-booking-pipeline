@@ -70,7 +70,5 @@ def get_item(property_id: str, timestamp: str):
 def query_by_property(property_id: str):
     """All timestamped snapshots for one property, e.g. its history over time."""
     table = get_table()
-    response = table.query(
-        KeyConditionExpression=boto3.dynamodb.conditions.Key("property_id").eq(property_id)
-    )
+    response = table.query(KeyConditionExpression=boto3.dynamodb.conditions.Key("property_id").eq(property_id))
     return response.get("Items", [])

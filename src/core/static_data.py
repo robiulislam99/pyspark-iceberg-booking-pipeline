@@ -87,9 +87,7 @@ def get_accommodation_type_name_map() -> dict:
     raw = get_constants()
     accommodation_types = raw.get("accommodation_types", {})
     return {
-        code: entry.get("name", {}).get("en-us", "")
-        for code, entry in accommodation_types.items()
-        if entry.get("name", {}).get("en-us")
+        code: entry.get("name", {}).get("en-us", "") for code, entry in accommodation_types.items() if entry.get("name", {}).get("en-us")
     }
 
 
@@ -105,9 +103,7 @@ def get_property_type_category_map() -> dict:
     mapped = raw.get("property_type_mapping", {}).get("mapped", [])
 
     return {
-        row["property_type_name"]: row.get("group_name", "")
-        for row in mapped
-        if isinstance(row, dict) and row.get("property_type_name")
+        row["property_type_name"]: row.get("group_name", "") for row in mapped if isinstance(row, dict) and row.get("property_type_name")
     }
 
 
@@ -138,11 +134,7 @@ def get_city_name_map(country_code: str) -> dict:
     e.g. get_city_name_map('ae') -> {'-784605': 'Wāsiţ'}
     """
     rows = get_location_mapping(country_code, "city")
-    return {
-        str(row["city_code"]): row.get("city", "")
-        for row in rows
-        if row.get("city_code") is not None
-    }
+    return {str(row["city_code"]): row.get("city", "") for row in rows if row.get("city_code") is not None}
 
 
 def resolve_city_name(country_code: str, city_code) -> str:
@@ -179,9 +171,7 @@ def get_facility_type_name_map() -> dict:
     """
     raw = get_constants()
     facility_types = raw.get("facility_types", {})
-    return {
-        type_id: entry.get("name", {}).get("en-us", "") for type_id, entry in facility_types.items()
-    }
+    return {type_id: entry.get("name", {}).get("en-us", "") for type_id, entry in facility_types.items()}
 
 
 def clear_cache():

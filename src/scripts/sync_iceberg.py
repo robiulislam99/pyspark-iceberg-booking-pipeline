@@ -267,8 +267,7 @@ def sync_accommodation_details(date_str: str) -> dict:
         deduped[row["feed_provider_id"]] = row
     if len(deduped) != len(processed_rows):
         logger.warning(
-            f"Deduped {len(processed_rows) - len(deduped)} duplicate "
-            f"feed_provider_id row(s) before merge for date={date_str}"
+            f"Deduped {len(processed_rows) - len(deduped)} duplicate " f"feed_provider_id row(s) before merge for date={date_str}"
         )
     processed_rows = list(deduped.values())
 

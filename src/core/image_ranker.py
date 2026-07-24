@@ -38,9 +38,7 @@ def _get_aesthetic_classifier():
 def _get_room_classifier():
     global _room_classifier
     if _room_classifier is None:
-        _room_classifier = pipeline(
-            "zero-shot-image-classification", model="openai/clip-vit-base-patch32"
-        )
+        _room_classifier = pipeline("zero-shot-image-classification", model="openai/clip-vit-base-patch32")
     return _room_classifier
 
 

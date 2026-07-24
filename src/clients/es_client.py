@@ -26,8 +26,5 @@ def ensure_index(es: Elasticsearch):
 def bulk_upsert(es: Elasticsearch, documents: list):
     """documents: list of dicts, each must have an 'id' key used as _id."""
     ensure_index(es)
-    actions = [
-        {"_op_type": "index", "_index": INDEX_NAME, "_id": doc["id"], "_source": doc}
-        for doc in documents
-    ]
+    actions = [{"_op_type": "index", "_index": INDEX_NAME, "_id": doc["id"], "_source": doc} for doc in documents]
     helpers.bulk(es, actions)

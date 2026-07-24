@@ -84,9 +84,7 @@ def resolve_images(photos: list) -> tuple[str, list]:
     if not photos:
         return "", []
 
-    images = [
-        p.get("url", {}).get("standard", "") for p in photos if p.get("url", {}).get("standard")
-    ]
+    images = [p.get("url", {}).get("standard", "") for p in photos if p.get("url", {}).get("standard")]
 
     feature_image = ""
     for photo in photos:
@@ -271,9 +269,7 @@ def resolve_feature_summary(facilities: list) -> list:
 
         grouped.setdefault(category_name, []).append(name)
 
-    return [
-        {"name": category, "description": "\n".join(names)} for category, names in grouped.items()
-    ]
+    return [{"name": category, "description": "\n".join(names)} for category, names in grouped.items()]
 
 
 def process_rental_property(raw: dict, search_price_map: dict) -> dict:
@@ -328,9 +324,7 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         # --- Ratings & size -----------------------------------------------
         "star_rating": rating.get("stars"),
         "review_score": review_score,
-        "review_score_general": _to_decimal_safe(review_score / 2)
-        if review_score is not None
-        else None,
+        "review_score_general": _to_decimal_safe(review_score / 2) if review_score is not None else None,
         "number_of_review": rating.get("number_of_reviews") or 0,
         "bedroom_count": number_of_rooms.get("bedrooms"),
         "bathroom_count": number_of_rooms.get("bathrooms"),

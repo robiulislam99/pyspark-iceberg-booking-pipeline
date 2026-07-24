@@ -57,9 +57,7 @@ def export_date(spark, date_str: str):
         return
 
     df.foreachPartition(_export_partition)
-    print(
-        f"Wrote {row_count} item(s) to DynamoDB Local table 'rental_properties' for date={date_str}"
-    )
+    print(f"Wrote {row_count} item(s) to DynamoDB Local table 'rental_properties' for date={date_str}")
 
 
 if __name__ == "__main__":

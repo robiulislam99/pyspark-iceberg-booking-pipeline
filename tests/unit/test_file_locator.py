@@ -57,9 +57,7 @@ class TestReadFeedRecords:
         folder.mkdir(parents=True)
         (folder / "record_0.json").write_text(json.dumps({"rental_property": {"id": 1}}))
 
-        records = list(
-            file_locator.read_feed_records("accommodation_details", "20260714", "changed")
-        )
+        records = list(file_locator.read_feed_records("accommodation_details", "20260714", "changed"))
         assert records == [{"id": 1}]
 
     def test_flat_array_shape_yields_each_item(self, data_dir):
@@ -71,9 +69,7 @@ class TestReadFeedRecords:
         assert records == [{"id": 1}, {"id": 2}]
 
     def test_missing_bucket_yields_nothing(self, data_dir):
-        records = list(
-            file_locator.read_feed_records("accommodation_details", "20260714", "changed")
-        )
+        records = list(file_locator.read_feed_records("accommodation_details", "20260714", "changed"))
         assert records == []
 
 
