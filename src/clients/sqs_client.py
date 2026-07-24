@@ -14,7 +14,16 @@ AWS_REGION = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
 
 
 def _client():
-    return boto3.client("sqs", endpoint_url=SQS_ENDPOINT_URL, region_name=AWS_REGION)
+    kwargs = {"region_name": AWS_REGION}
+    endpoint_url = SQS_ENDPOINT_URL
+
+    if endpoint_url and endpoint_url.startswith("http://sqs-mock-only"):
+        endpoint_url = None
+
+    if endpoint_url:
+        kwargs["endpoint_url"] = endpoint_url
+
+    return boto3.client("sqs", **kwargs)
 
 
 def ensure_queue() -> str:
