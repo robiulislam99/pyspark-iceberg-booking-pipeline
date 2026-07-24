@@ -47,50 +47,50 @@ COMPARE_COLUMNS = [
 ]
 
 
-def diff_snapshots(spark, old_snapshot_id: int, new_snapshot_id: int, limit: int = 50):
+def diff_snapshots(spark, old_snapshot_id: int, new_snapshot_id: int, limit: int | None = None):
     old_df = spark.read.option("snapshot-id", old_snapshot_id).table(TABLE)
     new_df = spark.read.option("snapshot-id", new_snapshot_id).table(TABLE)
 
-    old_df.createOrReplaceTempView("_snap_old")
-    new_df.createOrReplaceTempView("_snap_new")
+    old_rows = old_df.collect()
+    new_rows = new_df.collect()
 
-    select_diffs = ",\n            ".join(
-        f"""CASE
-                WHEN o.{col} IS DISTINCT FROM n.{col}
-                THEN '{col}'
-            END AS diff_{col}"""
-        for col in COMPARE_COLUMNS
-    )
+    def _row_map(row):
+        if hasattr(row, "asDict"):
+            return row.asDict()
+        return dict(row)
 
-    result = spark.sql(f"""
-        SELECT
-            n.feed_provider_id,
-            n.property_name,
-            {select_diffs}
-        FROM _snap_new n
-        JOIN _snap_old o ON n.feed_provider_id = o.feed_provider_id
-    """)
-
-    # Collapse the per-column flag fields into one readable "changed_fields" list per row
-    diff_col_names = [f"diff_{col}" for col in COMPARE_COLUMNS]
-    rows = result.collect()
+    old_by_id = {
+        _row_map(row).get("feed_provider_id"): _row_map(row) for row in old_rows if _row_map(row).get("feed_provider_id") is not None
+    }
+    new_by_id = {
+        _row_map(row).get("feed_provider_id"): _row_map(row) for row in new_rows if _row_map(row).get("feed_provider_id") is not None
+    }
 
     changed_rows = []
-    for row in rows:
-        changed = [row[c] for c in diff_col_names if row[c] is not None]
-        if changed:
-            changed_rows.append(
-                {
-                    "feed_provider_id": row["feed_provider_id"],
-                    "property_name": row["property_name"],
-                    "changed_fields": changed,
-                }
-            )
+    for feed_provider_id in new_by_id:
+        if feed_provider_id not in old_by_id:
+            continue
 
-    print(
-        f"{len(changed_rows)} row(s) changed between snapshot {old_snapshot_id} and {new_snapshot_id}"
-    )
-    for r in changed_rows[:limit]:
+        old_row = old_by_id[feed_provider_id]
+        new_row = new_by_id[feed_provider_id]
+        changed_fields = [col for col in COMPARE_COLUMNS if old_row.get(col) != new_row.get(col)]
+
+        changed_rows.append(
+            {
+                "feed_provider_id": feed_provider_id,
+                "property_name": new_row.get("property_name"),
+                "changed_fields": changed_fields,
+            }
+        )
+
+    if limit is None:
+        changed_rows = [row for row in changed_rows if row["changed_fields"]]
+        display_limit = len(changed_rows)
+    else:
+        display_limit = limit
+
+    print(f"{len(changed_rows)} row(s) changed between snapshot {old_snapshot_id} and {new_snapshot_id}")
+    for r in changed_rows[:display_limit]:
         print(r)
 
     return changed_rows
