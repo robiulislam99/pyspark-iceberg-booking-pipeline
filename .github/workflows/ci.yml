@@ -56,7 +56,7 @@ jobs:
         run: docker compose up -d
 
       - name: Install test dependencies inside spark container
-        run: docker compose exec -T spark pip install -r requirements-ci.txt --break-system-packages
+        run: docker compose exec -T spark bash -c "cd /app && pip install -r requirements-ci.txt --break-system-packages"
 
       - name: Run tests with coverage
         run: docker compose exec -T spark bash -c "cd /app && pytest --durations=20 --cov=src --cov-report=xml:coverage.xml tests/"
