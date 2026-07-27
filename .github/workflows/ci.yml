@@ -52,8 +52,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set vm.max_map_count for Elasticsearch
+        run: sudo sysctl -w vm.max_map_count=262144
+
       - name: Start services
         run: docker compose up -d
+
+      - name: Show elasticsearch logs on failure
+        if: failure()
+        run: docker compose logs elasticsearch
 
       - name: Install test dependencies inside spark container
         run: docker compose exec -T spark bash -c "cd /app && pip install -r requirements-ci.txt --break-system-packages"
