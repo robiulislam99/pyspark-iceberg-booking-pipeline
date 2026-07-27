@@ -70,10 +70,11 @@ jobs:
       - name: Install test dependencies inside spark container
         run: docker compose exec -T spark bash -c "cd /app && pip install -r requirements-ci.txt --break-system-packages"
 
-      - name: Run tests with coverage
-        timeout-minutes: 5
-        run: docker compose exec -T spark bash -c "cd /app && pytest --durations=20 --cov=src --cov-report=xml:coverage.xml tests/"
+      - name: Run unit tests with coverage
+        run: docker compose exec -T spark bash -c "cd /app && pytest tests/unit --durations=20 --cov=src --cov-report=xml:coverage.xml --timeout=30"
 
+      - name: Run integration tests
+        run: docker compose exec -T spark bash -c "cd /app && pytest tests/integration --durations=20 --timeout=120"
       - name: Copy coverage report out of container
         run: docker compose cp spark:/app/coverage.xml ./coverage.xml
 
