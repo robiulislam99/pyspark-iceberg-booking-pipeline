@@ -52,6 +52,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Prepare Elasticsearch data directory
+        run: |
+          mkdir -p data/es_data
+          sudo chown -R 1000:1000 data/es_data
+
       - name: Set vm.max_map_count for Elasticsearch
         run: sudo sysctl -w vm.max_map_count=262144
 
