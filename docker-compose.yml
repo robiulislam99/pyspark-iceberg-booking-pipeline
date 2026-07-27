@@ -33,8 +33,12 @@ services:
       - "4040:4040"
       - "8888:8888"
     depends_on:
-      - localstack
-      - elasticsearch
+      localstack:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      dynamodb-local:
+        condition: service_healthy
 
   localstack:
     image: localstack/localstack:3.7
@@ -46,6 +50,11 @@ services:
       - DEFAULT_REGION=us-east-1
     volumes:
       - ./data/localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
@@ -58,6 +67,11 @@ services:
       - "9200:9200"
     volumes:
       - ./data/es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"yellow\"\\|\"status\":\"green\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.0
@@ -67,7 +81,8 @@ services:
     ports:
       - "5601:5601"
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
 
   dynamodb-local:
     image: amazon/dynamodb-local:2.5.2
@@ -77,6 +92,11 @@ services:
       - "8001:8000"
     volumes:
       - ./data/dynamodb_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8000 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   dynamodb-admin:
     image: aaronshaf/dynamodb-admin:latest
@@ -89,4 +109,5 @@ services:
     ports:
       - "8002:8001"
     depends_on:
-      - dynamodb-local
+      dynamodb-local:
+        condition: service_healthy

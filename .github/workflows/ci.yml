@@ -59,6 +59,7 @@ jobs:
         run: docker compose exec -T spark bash -c "cd /app && pip install -r requirements-ci.txt --break-system-packages"
 
       - name: Run tests with coverage
+        timeout-minutes: 5
         run: docker compose exec -T spark bash -c "cd /app && pytest --durations=20 --cov=src --cov-report=xml:coverage.xml tests/"
 
       - name: Copy coverage report out of container
