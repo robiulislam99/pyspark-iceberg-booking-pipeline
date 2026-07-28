@@ -14,6 +14,7 @@ Run (from project root, inside the spark container):
 
 import importlib
 
+import boto3
 import pytest
 from moto import mock_aws
 
@@ -26,17 +27,47 @@ from moto import mock_aws
 def dynamo_client(monkeypatch):
     """
     Reload the module under test inside the moto mock context, with fake
-    credentials/region set, so every boto3.resource(...) call it makes is
-    intercepted by moto instead of hitting real AWS or a real endpoint.
+    credentials/region set, so every boto3.resource(...)/boto3.client(...)
+    call it makes is intercepted by moto instead of hitting real AWS or a
+    real endpoint.
+
+    NOTE: If the source module passes an explicit `endpoint_url` (e.g. a
+    hardcoded or defaulted local-dynamodb URL) when constructing its boto3
+    resource/client, moto can fail to intercept that call -- the request
+    falls through to a real socket connection and hangs until timeout.
+    We can't change the source module here, so instead we patch
+    boto3.resource / boto3.client at the test level to strip any
+    endpoint_url kwarg before the real boto3 call happens. This forces
+    standard AWS endpoint resolution, which moto's mock_aws() reliably
+    intercepts, regardless of what the source module tries to pass.
     """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "test")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
-    # Moto ignores endpoint_url in mock mode, but clear it anyway so the
-    # module doesn't try to reach a real dynamodb-local host if moto
-    # weren't active for some reason.
     monkeypatch.delenv("DYNAMODB_ENDPOINT_URL", raising=False)
     monkeypatch.setenv("DYNAMODB_TABLE_NAME", "rental_properties_test")
+
+    # Strip endpoint_url from any boto3.resource(...) call so moto's
+    # mock always sees a standard AWS-style request, no matter what the
+    # module under test tries to pass.
+    _original_resource = boto3.resource
+
+    def _patched_resource(*args, **kwargs):
+        kwargs.pop("endpoint_url", None)
+        return _original_resource(*args, **kwargs)
+
+    monkeypatch.setattr(boto3, "resource", _patched_resource)
+
+    # Same treatment for boto3.client(...), since boto3.resource(...)
+    # delegates to a client internally, and some modules call
+    # boto3.client("dynamodb", ...) directly.
+    _original_client = boto3.client
+
+    def _patched_client(*args, **kwargs):
+        kwargs.pop("endpoint_url", None)
+        return _original_client(*args, **kwargs)
+
+    monkeypatch.setattr(boto3, "client", _patched_client)
 
     with mock_aws():
         import clients.dynamodb_client as module
