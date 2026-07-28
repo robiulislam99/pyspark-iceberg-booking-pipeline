@@ -15,15 +15,33 @@ in Docker.
 | DynamoDB Local + dynamodb-admin | key-value export + browser UI |
 | Local filesystem | S3-like object store |
 | Hugging Face models (local, CPU) | image aesthetic scoring + room labeling |
+| Ruff | linting and formatting checks |
+| SonarQube | code quality and security analysis |
+| CI/CD | automated build, test, and quality checks |
 
 ## Prerequisites
 
 - Docker + Docker Compose
 - `booking/` data folder placed at `./data/booking` (sibling of `src/`)
 
+## Project structure
+
+- `src/` — main application code for the ETL pipeline
+- `src/scripts/` — runnable entry points such as sync, export, and consumer scripts
+- `src/clients/` — wrappers for Spark, S3, DynamoDB, Elasticsearch, and SQS
+- `src/core/` — core processing, ranking, snapshot diff, and static-data logic
+- `src/mappers/` — mapping logic between source documents and target formats
+- `data/` — input feeds, local exports, and local service data directories
+- `notebooks/` — exploratory notebooks for data analysis
+- `tests/` — unit tests covering the pipeline components
+- `docker-compose.yml` and `Dockerfile` — container orchestration and image setup
+
 ## First-time setup
 
 ```bash
+git clone <repo-url>
+cd booking-lake
+
 mkdir -p data/warehouse data/scheduler_data notebooks .cache/ivy_cache data/s3_local \
          data/dynamodb_data data/localstack_data data/es_data .cache/hf_cache
 touch data/warehouse/.gitkeep
@@ -83,7 +101,7 @@ curl http://localhost:9200/rental_properties/_mapping/field/lonlat
 4. Dashboard → Add from library (map) + Create visualization (Lens) for charts/tables
 5. If panels show no data: widen the time range (default is "Last 15 minutes")
 
-## 4. Export: Iceberg → local S3
+## 4. Export: Iceberg → local S3 (May take time, as used two models for RankImage)
 
 ```bash
 docker compose exec spark python /app/src/scripts/export_to_s3_local.py 20260714
