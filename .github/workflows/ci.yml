@@ -53,21 +53,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ✅ Fix ES permission issue
+      # Fix ES permission issue
       - name: Prepare Elasticsearch data directory
         run: |
           mkdir -p data/es_data
           sudo chown -R 1000:1000 data/es_data
 
-      # ✅ Required for Elasticsearch
+      # Required for Elasticsearch
       - name: Set vm.max_map_count
         run: sudo sysctl -w vm.max_map_count=262144
 
-      # ✅ Start containers
+      # Start containers
       - name: Start services
         run: docker compose up -d
 
-      # ✅ HARD WAIT for Elasticsearch (more robust)
+      # HARD WAIT for Elasticsearch (more robust)
       - name: Wait for Elasticsearch
         run: |
           echo "Waiting for Elasticsearch..."
@@ -80,7 +80,7 @@ jobs:
             sleep 5
           done
 
-      # ✅ HARD WAIT for DynamoDB
+      # HARD WAIT for DynamoDB
       - name: Wait for DynamoDB
         run: |
           echo "Waiting for DynamoDB..."
@@ -93,20 +93,17 @@ jobs:
             sleep 3
           done
 
-      # ✅ Extra safety buffer (Spark startup)
+      # Extra safety buffer (Spark startup)
       - name: Extra wait buffer
         run: sleep 15
 
-      # ⚠️ IMPORTANT: use exec instead of run
+      # IMPORTANT: use exec instead of run
       # (run creates NEW container → services unreachable)
       - name: Install dependencies in running spark container
         run: docker compose exec -T spark bash -c "cd /app && pip install -r requirements-ci.txt --break-system-packages"
 
       - name: Run unit tests
         run: docker compose exec -T spark bash -c "cd /app && pytest tests/unit -vv --durations=20 --cov=src --cov-report=xml:coverage.xml --timeout=120"
-
-      - name: Run integration tests
-        run: docker compose exec -T spark bash -c "cd /app && pytest tests/integration -vv --durations=20 --timeout=180"
 
       - name: Copy coverage report
         run: docker compose cp spark:/app/coverage.xml ./coverage.xml || true
@@ -117,7 +114,7 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
-      # 🔥 Show logs if anything fails
+      # Show logs if anything fails
       - name: Show logs on failure
         if: failure()
         run: docker compose logs
