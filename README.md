@@ -1,4 +1,4 @@
-# Booking Lake — Local Data Pipeline
+# Booking Lake: Local Data Pipeline
 
 Local ETL/analytics pipeline: Booking.com JSON feeds → PySpark → Iceberg →
 (SQS → Elasticsearch/Kibana) + (S3-local export with image ranking/labeling)
@@ -39,7 +39,7 @@ in Docker.
 ## First-time setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/robiulislam99/pyspark-iceberg-booking-pipeline.git booking-lake
 cd booking-lake
 
 mkdir -p data/warehouse data/scheduler_data notebooks .cache/ivy_cache data/s3_local \
@@ -181,11 +181,6 @@ curl -X DELETE http://localhost:9200/rental_properties
 **Kibana panels show no data**
 Widen the time range picker (top right), then Update/Refresh.
 
-**`service "spark" is not running`**
-```bash
-docker compose up -d
-docker compose ps
-```
 
 **Port already allocated (e.g. DynamoDB on 8000)**
 Change the host-side port in `docker-compose.yml` (`"8001:8000"`), leave
@@ -207,11 +202,6 @@ print(requests.head('<url>', timeout=5).status_code)
 
 ## Known limitations
 
-- Iceberg's `rental_property` table holds only the latest merged state
-  per property — no historical snapshots per sync date beyond Iceberg's
-  own snapshot metadata (see step 7).
-- `export_to_s3_local.py` and `export_to_dynamodb.py` filter by that
-  date's changelog IDs, not by any stored "as of" state.
 - Room-type labeling (`ImageAnalysis[].Label`) uses CLIP in zero-shot
-  mode — not trained on real-estate photos specifically; treat as
+  mode not trained on real-estate photos specifically; treat as
   approximate, spot-check before relying on it.
