@@ -29,6 +29,9 @@ services:
       - ES_INDEX_NAME=rental_properties
       - DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
       - DYNAMODB_TABLE_NAME=rental_properties
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION_NAME=rental_properties
+      - EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
     ports:
       - "4040:4040"
       - "8888:8888"
@@ -39,6 +42,8 @@ services:
         condition: service_healthy
       dynamodb-local:
         condition: service_healthy
+      qdrant:
+        condition: service_started
 
   localstack:
     image: localstack/localstack:3.7
@@ -111,3 +116,12 @@ services:
     depends_on:
       dynamodb-local:
         condition: service_healthy
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.3
+    container_name: booking-lake-qdrant
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
+    volumes:
+      - ./data/qdrant_data:/qdrant/storage

@@ -13,7 +13,12 @@ ENV PATH="$JAVA_HOME/bin:$PATH"
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Pre-download the embedding model at build time so it's baked into
+# the image — avoids downloading it every time the container starts.
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 COPY src/ /app/src/
 
