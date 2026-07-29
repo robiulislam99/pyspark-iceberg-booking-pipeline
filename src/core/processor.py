@@ -23,6 +23,7 @@ immediately shadowed by the `raw` parameter -- and isn't available outside
 Linux, so no reason to keep it here).
 """
 
+import re
 from datetime import datetime
 
 from slugify import slugify
@@ -35,6 +36,21 @@ from src.core.static_data import (
     resolve_city_name,
     resolve_country_name,
 )
+
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def resolve_property_description(raw: dict) -> str:
+    """
+    raw['description']['text']['en-us'] contains HTML (e.g. '<h2>...</h2>').
+    Strips tags to store clean plain text -- if you want the raw HTML
+    preserved instead, return html_text directly without the tag strip.
+    """
+    html_text = (raw.get("description") or {}).get("text", {}).get("en-us") or ""
+    if not html_text:
+        return ""
+    text = _HTML_TAG_RE.sub(" ", html_text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def resolve_property_type(accommodation_type_code) -> tuple[str, str]:
@@ -347,6 +363,7 @@ def process_rental_property(raw: dict, search_price_map: dict) -> dict:
         "property_flags": resolve_property_flags(raw),
         "other_policy": resolve_other_policy(raw),
         "feature_summary": resolve_feature_summary(facilities),
+        "property_description": resolve_property_description(raw),
         # --- Status -----------------------------------------------------
         "is_published": raw.get("accommodation_status") == "open",
         # --- Safety net: keep the full original record -----------------------------------------------
