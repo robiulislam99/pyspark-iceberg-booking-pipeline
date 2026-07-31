@@ -183,7 +183,12 @@ diff_snapshots(spark, snaps[-2]['snapshot_id'], snaps[-1]['snapshot_id'])
 "
 ```
 
-## 8. Explore interactively
+## 8. Reduplication
+```
+docker compose exec spark python /app/src/scripts/detect_duplicates.py
+```
+
+## 9. Explore interactively
 
 ```bash
 docker compose exec spark jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
