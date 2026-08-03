@@ -109,8 +109,9 @@ class TestBuildSitemapXml(unittest.TestCase):
             f"{SITE_BASE_URL}/property/super-8-by-wyndham-crete/1034061",
         )
         self.assertEqual(url_el.find("sm:lastmod", NS).text, "2026-07-14T09:12:31+00:00")
-        self.assertEqual(url_el.find("sm:changefreq", NS).text, "daily")
-        self.assertEqual(url_el.find("sm:priority", NS).text, "0.8")
+
+    # self.assertEqual(url_el.find("sm:changefreq", NS).text, "daily")
+    # self.assertEqual(url_el.find("sm:priority", NS).text, "0.8")
 
     def test_multiple_rows_produce_matching_number_of_url_entries(self):
         rows = [{"external_id": str(i), "property_slug": f"listing-{i}"} for i in range(5)]

@@ -59,11 +59,11 @@ def build_sitemap_xml(rows: list[dict]) -> str:
         lastmod = SubElement(url_el, "lastmod")
         lastmod.text = _format_lastmod(row.get("last_synced_at"))
 
-        changefreq = SubElement(url_el, "changefreq")
-        changefreq.text = "daily"
+        # changefreq = SubElement(url_el, "changefreq")
+        # changefreq.text = "daily"
 
-        priority = SubElement(url_el, "priority")
-        priority.text = "0.8"
+        # priority = SubElement(url_el, "priority")
+        # priority.text = "0.8"
 
         for image_url in _collect_image_urls(row):
             image_el = SubElement(url_el, "image:image")
