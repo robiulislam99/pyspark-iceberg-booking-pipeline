@@ -23,7 +23,7 @@ OUTPUT_DIR = Path("/app/data/sitemaps")
 
 def load_published_rows(spark) -> list[dict]:
     df = spark.sql(f"""
-        SELECT external_id, property_slug, last_synced_at
+        SELECT external_id, property_slug, last_synced_at, feature_image, images
         FROM {TABLE}
         WHERE is_published = true
     """)
