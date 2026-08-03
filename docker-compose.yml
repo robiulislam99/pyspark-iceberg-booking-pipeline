@@ -14,6 +14,8 @@ services:
       - ./.cache/ivy_cache:/root/.ivy2
       - ./data/s3_local:/app/s3_local
       - ./.cache/hf_cache:/root/.cache/huggingface
+      - ./data/sitemaps:/app/data/sitemaps
+      
     environment:
       - BOOKING_DATA_DIR=/app/booking_data
       - HF_HOME=/root/.cache/huggingface
@@ -32,6 +34,7 @@ services:
       - QDRANT_URL=http://qdrant:6333
       - QDRANT_COLLECTION_NAME=rental_properties
       - EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+      - SITE_BASE_URL=https://rentbyowner.com
     ports:
       - "4040:4040"
       - "8888:8888"
@@ -73,7 +76,7 @@ services:
     volumes:
       - ./data/es_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"yellow\"\\|\"status\":\"green\"'"]
+      test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
