@@ -188,7 +188,15 @@ diff_snapshots(spark, snaps[-2]['snapshot_id'], snaps[-1]['snapshot_id'])
 docker compose exec spark python /app/src/scripts/detect_duplicates.py
 ```
 
-## 9. Explore interactively
+## 9. Generate sitemap
+
+```bash
+docker compose exec spark python /app/src/scripts/generate_sitemap.py
+```
+
+This writes the sitemap XML files to `data/sitemaps/` (for example `sitemap.xml` or `sitemap-1.xml` plus `sitemap_index.xml` when the dataset is large).
+
+## 10. Explore interactively
 
 ```bash
 docker compose exec spark jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
