@@ -12,11 +12,21 @@ MAX_URLS_PER_SITEMAP = 50000  # hard limit per the sitemap protocol spec
 
 SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 IMAGE_NS = "http://www.google.com/schemas/sitemap-image/1.1"
+XHTML_NS = "http://www.w3.org/1999/xhtml"
+
+# hreflang -> base domain, for alternate-language/region versions of the
+# same listing. Per the hreflang spec, EVERY <url> block should list ALL
+# variants including itself (self-referencing), not just the "other" ones.
+ALTERNATE_DOMAINS = {
+    "en": "https://www.rentbyowner.com",
+    "en-CA": "https://www.rentbyowner.ca",
+    "en-NZ": "https://www.rentbyowner.nz",
+}
 
 
-def url_for_property(external_id: str, property_slug: str) -> str:
+def url_for_property(external_id: str, property_slug: str, base_url: str = SITE_BASE_URL) -> str:
     slug_part = property_slug or "listing"
-    return f"{SITE_BASE_URL}/property/{slug_part}/{external_id}"
+    return f"{base_url}/property/{slug_part}/{external_id}"
 
 
 def _format_lastmod(dt) -> str:
@@ -47,6 +57,7 @@ def build_sitemap_xml(rows: list[dict]) -> str:
         {
             "xmlns": SITEMAP_NS,
             "xmlns:image": IMAGE_NS,
+            "xmlns:xhtml": XHTML_NS,
         },
     )
 
@@ -64,6 +75,15 @@ def build_sitemap_xml(rows: list[dict]) -> str:
 
         # priority = SubElement(url_el, "priority")
         # priority.text = "0.8"
+
+        for hreflang, base_url in ALTERNATE_DOMAINS.items():
+            alt_link = SubElement(url_el, "xhtml:link")
+            alt_link.set("rel", "alternate")
+            alt_link.set("hreflang", hreflang)
+            alt_link.set(
+                "href",
+                url_for_property(row.get("external_id"), row.get("property_slug"), base_url),
+            )
 
         for image_url in _collect_image_urls(row):
             image_el = SubElement(url_el, "image:image")
