@@ -1,14 +1,27 @@
 """
 URL structure: {SITE_BASE_URL}/property/{property_slug}/{external_id}
+
+Functions here RENDER XML fragments as strings rather than writing
+directly to a file -- this lets the caller (generate_sitemap.py) track
+exact byte size before writing (for the sitemap protocol's 50MB
+uncompressed limit) and write through gzip compression, without this
+module needing to know anything about either concern.
 """
 
 import os
 from datetime import datetime
-from xml.dom import minidom
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.sax.saxutils import escape
 
 SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "https://rentbyowner.com")
-MAX_URLS_PER_SITEMAP = 50000  # hard limit per the sitemap protocol spec
+
+# Sitemap protocol hard limits: a single sitemap file must not exceed
+# 50,000 URLs OR 50MB uncompressed, whichever comes first.
+MAX_URLS_PER_SITEMAP = 50000
+MAX_BYTES_PER_SITEMAP = 50 * 1024 * 1024  # 50MB, uncompressed size
+# Safety margin below the hard limit -- stop adding new <url> blocks
+# once we're within this many bytes of the cap, so the closing
+# </urlset> tag never pushes a file over the real limit.
+SIZE_SAFETY_MARGIN_BYTES = 64 * 1024  # 64KB
 
 SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
 IMAGE_NS = "http://www.google.com/schemas/sitemap-image/1.1"
@@ -46,68 +59,52 @@ def _collect_image_urls(row: dict) -> list[str]:
     return image_urls
 
 
-def build_sitemap_xml(rows: list[dict]) -> str:
-    """
-    rows: list of dicts with at least external_id, property_slug,
-    last_synced_at, and optionally images (list[str]).
-    Returns one <urlset> XML document as a string.
-    """
-    urlset = Element(
-        "urlset",
-        {
-            "xmlns": SITEMAP_NS,
-            "xmlns:image": IMAGE_NS,
-            "xmlns:xhtml": XHTML_NS,
-        },
+def render_header() -> str:
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        f'<urlset xmlns="{SITEMAP_NS}" '
+        f'xmlns:image="{IMAGE_NS}" '
+        f'xmlns:xhtml="{XHTML_NS}">\n'
     )
 
-    for row in rows:
-        url_el = SubElement(urlset, "url")
 
-        loc = SubElement(url_el, "loc")
-        loc.text = url_for_property(row.get("external_id"), row.get("property_slug"))
-
-        lastmod = SubElement(url_el, "lastmod")
-        lastmod.text = _format_lastmod(row.get("last_synced_at"))
-
-        # changefreq = SubElement(url_el, "changefreq")
-        # changefreq.text = "daily"
-
-        # priority = SubElement(url_el, "priority")
-        # priority.text = "0.8"
-
-        for hreflang, base_url in ALTERNATE_DOMAINS.items():
-            alt_link = SubElement(url_el, "xhtml:link")
-            alt_link.set("rel", "alternate")
-            alt_link.set("hreflang", hreflang)
-            alt_link.set(
-                "href",
-                url_for_property(row.get("external_id"), row.get("property_slug"), base_url),
-            )
-
-        for image_url in _collect_image_urls(row):
-            image_el = SubElement(url_el, "image:image")
-            image_loc = SubElement(image_el, "image:loc")
-            image_loc.text = image_url
-
-    raw_xml = tostring(urlset, encoding="unicode")
-    return minidom.parseString(raw_xml).toprettyxml(indent="  ")
+def render_footer() -> str:
+    return "</urlset>\n"
 
 
-def build_sitemap_index_xml(sitemap_filenames: list[str]) -> str:
-    """Only needed when rows exceed MAX_URLS_PER_SITEMAP and get split across multiple files."""
-    sitemapindex = Element("sitemapindex", xmlns=SITEMAP_NS)
+def render_url_block(row: dict) -> str:
+    """Renders one <url>...</url> block for a single row as a string."""
+    external_id = row.get("external_id")
+    property_slug = row.get("property_slug")
 
+    lines = ["  <url>"]
+    lines.append(f"    <loc>{escape(url_for_property(external_id, property_slug))}</loc>")
+    lines.append(f"    <lastmod>{escape(_format_lastmod(row.get('last_synced_at')))}</lastmod>")
+
+    # <changefreq>weekly</changefreq>
+    # <priority>0.8</priority>
+
+    for hreflang, base_url in ALTERNATE_DOMAINS.items():
+        href = escape(url_for_property(external_id, property_slug, base_url))
+        lines.append(f'    <xhtml:link rel="alternate" hreflang="{hreflang}" href="{href}"/>')
+
+    for image_url in _collect_image_urls(row):
+        lines.append("    <image:image>")
+        lines.append(f"      <image:loc>{escape(image_url)}</image:loc>")
+        lines.append("    </image:image>")
+
+    lines.append("  </url>")
+    return "\n".join(lines) + "\n"
+
+
+def render_sitemap_index(sitemap_filenames: list[str]) -> str:
+    """Only needed when rows exceed the per-file URL/size limit and get split across multiple files."""
+    now = datetime.utcnow().isoformat()
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>', f'<sitemapindex xmlns="{SITEMAP_NS}">']
     for filename in sitemap_filenames:
-        sitemap_el = SubElement(sitemapindex, "sitemap")
-        loc = SubElement(sitemap_el, "loc")
-        loc.text = f"{SITE_BASE_URL}/{filename}"
-        lastmod = SubElement(sitemap_el, "lastmod")
-        lastmod.text = datetime.utcnow().isoformat()
-
-    raw_xml = tostring(sitemapindex, encoding="unicode")
-    return minidom.parseString(raw_xml).toprettyxml(indent="  ")
-
-
-def chunk_rows(rows: list[dict], chunk_size: int = MAX_URLS_PER_SITEMAP) -> list[list[dict]]:
-    return [rows[i : i + chunk_size] for i in range(0, len(rows), chunk_size)]
+        lines.append("  <sitemap>")
+        lines.append(f"    <loc>{escape(f'{SITE_BASE_URL}/{filename}')}</loc>")
+        lines.append(f"    <lastmod>{now}</lastmod>")
+        lines.append("  </sitemap>")
+    lines.append("</sitemapindex>")
+    return "\n".join(lines) + "\n"

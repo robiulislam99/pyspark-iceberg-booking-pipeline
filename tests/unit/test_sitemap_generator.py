@@ -6,19 +6,27 @@ from unittest import mock
 from xml.etree import ElementTree as ET
 
 from src.core.sitemap_generator import (
+    ALTERNATE_DOMAINS,
     IMAGE_NS,
-    MAX_URLS_PER_SITEMAP,
     SITE_BASE_URL,
     SITEMAP_NS,
+    XHTML_NS,
     _collect_image_urls,
     _format_lastmod,
-    build_sitemap_index_xml,
-    build_sitemap_xml,
-    chunk_rows,
+    render_footer,
+    render_header,
+    render_sitemap_index,
+    render_url_block,
     url_for_property,
 )
 
-NS = {"sm": SITEMAP_NS, "image": IMAGE_NS}
+NS = {"sm": SITEMAP_NS, "image": IMAGE_NS, "xhtml": XHTML_NS}
+
+
+def _build_doc(rows: list[dict]) -> str:
+    """Assemble a full urlset document out of the header/url/footer fragments."""
+    body = "".join(render_url_block(row) for row in rows)
+    return render_header() + body + render_footer()
 
 
 class TestUrlForProperty(unittest.TestCase):
@@ -33,6 +41,10 @@ class TestUrlForProperty(unittest.TestCase):
     def test_falls_back_to_listing_when_slug_empty_string(self):
         url = url_for_property("1034061", "")
         self.assertEqual(url, f"{SITE_BASE_URL}/property/listing/1034061")
+
+    def test_respects_custom_base_url(self):
+        url = url_for_property("1034061", "a-listing", base_url="https://www.rentbyowner.ca")
+        self.assertEqual(url, "https://www.rentbyowner.ca/property/a-listing/1034061")
 
 
 class TestFormatLastmod(unittest.TestCase):
@@ -81,15 +93,18 @@ class TestCollectImageUrls(unittest.TestCase):
         self.assertEqual(_collect_image_urls(row), ["https://img/a.jpg"])
 
 
-class TestBuildSitemapXml(unittest.TestCase):
-    def _parse(self, xml_str: str) -> ET.Element:
-        return ET.fromstring(xml_str)
-
-    def test_declares_sitemap_namespace(self):
-        xml_str = build_sitemap_xml([])
-        root = self._parse(xml_str)
+class TestRenderHeaderFooter(unittest.TestCase):
+    def test_header_declares_expected_namespaces(self):
+        xml_str = render_header() + render_footer()
+        root = ET.fromstring(xml_str)
         self.assertEqual(root.tag, f"{{{SITEMAP_NS}}}urlset")
 
+    def test_empty_document_has_no_url_entries(self):
+        root = ET.fromstring(_build_doc([]))
+        self.assertEqual(root.findall("sm:url", NS), [])
+
+
+class TestRenderUrlBlock(unittest.TestCase):
     def test_single_row_produces_one_url_entry_with_expected_fields(self):
         row = {
             "external_id": "1034061",
@@ -97,8 +112,7 @@ class TestBuildSitemapXml(unittest.TestCase):
             "last_synced_at": datetime(2026, 7, 14, 9, 12, 31, tzinfo=UTC),
             "images": ["https://img/a.jpg"],
         }
-        xml_str = build_sitemap_xml([row])
-        root = self._parse(xml_str)
+        root = ET.fromstring(_build_doc([row]))
 
         urls = root.findall("sm:url", NS)
         self.assertEqual(len(urls), 1)
@@ -110,24 +124,14 @@ class TestBuildSitemapXml(unittest.TestCase):
         )
         self.assertEqual(url_el.find("sm:lastmod", NS).text, "2026-07-14T09:12:31+00:00")
 
-    # self.assertEqual(url_el.find("sm:changefreq", NS).text, "daily")
-    # self.assertEqual(url_el.find("sm:priority", NS).text, "0.8")
-
     def test_multiple_rows_produce_matching_number_of_url_entries(self):
         rows = [{"external_id": str(i), "property_slug": f"listing-{i}"} for i in range(5)]
-        xml_str = build_sitemap_xml(rows)
-        root = self._parse(xml_str)
+        root = ET.fromstring(_build_doc(rows))
         self.assertEqual(len(root.findall("sm:url", NS)), 5)
-
-    def test_empty_rows_produces_empty_urlset(self):
-        xml_str = build_sitemap_xml([])
-        root = self._parse(xml_str)
-        self.assertEqual(root.findall("sm:url", NS), [])
 
     def test_row_without_images_has_no_image_elements(self):
         row = {"external_id": "1", "property_slug": "a"}
-        xml_str = build_sitemap_xml([row])
-        root = self._parse(xml_str)
+        root = ET.fromstring(_build_doc([row]))
         url_el = root.find("sm:url", NS)
         self.assertEqual(url_el.findall("image:image", NS), [])
 
@@ -138,8 +142,7 @@ class TestBuildSitemapXml(unittest.TestCase):
             "feature_image": "https://img/feature.jpg",
             "images": ["https://img/a.jpg", "https://img/b.jpg"],
         }
-        xml_str = build_sitemap_xml([row])
-        root = self._parse(xml_str)
+        root = ET.fromstring(_build_doc([row]))
         url_el = root.find("sm:url", NS)
 
         image_els = url_el.findall("image:image", NS)
@@ -152,16 +155,30 @@ class TestBuildSitemapXml(unittest.TestCase):
         )
 
     def test_missing_external_id_and_slug_still_produces_valid_url(self):
-        xml_str = build_sitemap_xml([{}])
-        root = self._parse(xml_str)
+        root = ET.fromstring(_build_doc([{}]))
         loc_text = root.find("sm:url", NS).find("sm:loc", NS).text
         self.assertEqual(loc_text, f"{SITE_BASE_URL}/property/listing/None")
 
+    def test_emits_self_referencing_and_alternate_hreflang_links(self):
+        row = {"external_id": "1", "property_slug": "a"}
+        root = ET.fromstring(_build_doc([row]))
+        url_el = root.find("sm:url", NS)
 
-class TestBuildSitemapIndexXml(unittest.TestCase):
+        alt_links = url_el.findall("xhtml:link", NS)
+        self.assertEqual(len(alt_links), len(ALTERNATE_DOMAINS))
+
+        hreflangs = {link.get("hreflang") for link in alt_links}
+        self.assertEqual(hreflangs, set(ALTERNATE_DOMAINS.keys()))
+
+        hrefs_by_lang = {link.get("hreflang"): link.get("href") for link in alt_links}
+        for hreflang, base_url in ALTERNATE_DOMAINS.items():
+            self.assertEqual(hrefs_by_lang[hreflang], f"{base_url}/property/a/1")
+
+
+class TestRenderSitemapIndex(unittest.TestCase):
     def test_one_sitemap_entry_per_filename(self):
         filenames = ["sitemap-1.xml", "sitemap-2.xml"]
-        xml_str = build_sitemap_index_xml(filenames)
+        xml_str = render_sitemap_index(filenames)
         root = ET.fromstring(xml_str)
 
         entries = root.findall("sm:sitemap", NS)
@@ -171,36 +188,15 @@ class TestBuildSitemapIndexXml(unittest.TestCase):
         self.assertEqual(locs, [f"{SITE_BASE_URL}/{f}" for f in filenames])
 
     def test_empty_filenames_produces_empty_index(self):
-        xml_str = build_sitemap_index_xml([])
+        xml_str = render_sitemap_index([])
         root = ET.fromstring(xml_str)
         self.assertEqual(root.findall("sm:sitemap", NS), [])
 
     def test_each_entry_has_a_lastmod(self):
-        xml_str = build_sitemap_index_xml(["sitemap-1.xml"])
+        xml_str = render_sitemap_index(["sitemap-1.xml"])
         root = ET.fromstring(xml_str)
         entry = root.find("sm:sitemap", NS)
         self.assertIsNotNone(entry.find("sm:lastmod", NS).text)
-
-
-class TestChunkRows(unittest.TestCase):
-    def test_splits_rows_into_chunks_of_given_size(self):
-        rows = list(range(10))
-        chunks = chunk_rows(rows, chunk_size=4)
-        self.assertEqual(chunks, [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]])
-
-    def test_empty_rows_returns_empty_list(self):
-        self.assertEqual(chunk_rows([], chunk_size=10), [])
-
-    def test_rows_fewer_than_chunk_size_returns_single_chunk(self):
-        rows = [1, 2, 3]
-        self.assertEqual(chunk_rows(rows, chunk_size=10), [[1, 2, 3]])
-
-    def test_default_chunk_size_matches_max_urls_per_sitemap(self):
-        rows = list(range(MAX_URLS_PER_SITEMAP + 1))
-        chunks = chunk_rows(rows)
-        self.assertEqual(len(chunks), 2)
-        self.assertEqual(len(chunks[0]), MAX_URLS_PER_SITEMAP)
-        self.assertEqual(len(chunks[1]), 1)
 
 
 if __name__ == "__main__":
