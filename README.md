@@ -1,9 +1,13 @@
 # Booking Lake: Local Data Pipeline
 
-Local ETL/analytics pipeline: Booking.com JSON feeds → PySpark → Iceberg →
-(SQS → Elasticsearch/Kibana) + (S3-local export with image ranking/labeling)
-+ (DynamoDB export) + (Qdrant export for semantic "similar properties" search).
-Fully local, no AWS account, no sudo — everything runs in Docker.
+Local ETL and analytics pipeline, fully local and containerized.
+
+- Booking.com JSON feeds → PySpark → Iceberg for data ingestion and transformation.
+- SQS → Elasticsearch/Kibana for change-event search and dashboarding.
+- Iceberg → local S3 export with image ranking and room labeling.
+- Iceberg → DynamoDB export for key-value access.
+- S3 export → Qdrant for semantic "similar properties" search.
+- Runs entirely in Docker, with no AWS account and no sudo required.
 
 ## Stack
 
