@@ -32,7 +32,12 @@ def main():
 
     print(f"Properties within {radius_km}km of {property_id}:\n")
     for r in results:
-        print(f"  {r['distance_km']:5.2f} km  {r['property_name']:<40} " f"{r['city']}, {r['country']}  (${r['usd_price']})")
+        print(
+            f"  {r['distance_km']:5.2f} km  "
+            f"{r['id']:<15} "
+            f"{r['property_name']:<35} "
+            f"{r['city']}, {r['country']}  (${r['usd_price']})"
+        )
 
 
 if __name__ == "__main__":
