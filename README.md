@@ -175,20 +175,6 @@ text is most semantically similar to the given property — separate
 from, and complementary to, the keyword/filter search in
 Elasticsearch. `score` is cosine similarity (0–1, higher = more similar).
 
-### Nearby property lookup
-
-Uses geographic distance from a property ID to list the closest nearby
-properties, nearest first. The default radius is 5 km and the default
-limit is 20 results.
-
-```bash
-docker compose exec spark python /app/src/scripts/find_nearby.py BC-16113929
-docker compose exec spark python /app/src/scripts/find_nearby.py BC-10178627 10 15
-```
-
-The second command looks up properties within 10 km of `BC-10178627` and
-returns up to 15 results.
-
 ## 7. Compare snapshots (what changed between two syncs)
 
 ```bash

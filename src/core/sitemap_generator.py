@@ -46,6 +46,14 @@ def _format_lastmod(dt) -> str:
     """W3C datetime format required by the sitemap protocol, e.g. 2026-07-14T09:12:31+00:00."""
     if dt is None:
         return datetime.utcnow().isoformat()
+    if isinstance(dt, str):
+        normalized = dt.strip()
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1] + "+00:00"
+        try:
+            return datetime.fromisoformat(normalized).isoformat()
+        except ValueError:
+            return normalized
     return dt.isoformat()
 
 

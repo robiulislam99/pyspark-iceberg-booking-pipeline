@@ -52,6 +52,9 @@ class TestFormatLastmod(unittest.TestCase):
         dt = datetime(2026, 7, 14, 9, 12, 31, tzinfo=UTC)
         self.assertEqual(_format_lastmod(dt), "2026-07-14T09:12:31+00:00")
 
+    def test_formats_iso_string_as_isoformat(self):
+        self.assertEqual(_format_lastmod("2026-07-14T09:12:31+00:00"), "2026-07-14T09:12:31+00:00")
+
     def test_formats_naive_datetime_as_isoformat(self):
         dt = datetime(2026, 7, 14, 9, 12, 31)
         self.assertEqual(_format_lastmod(dt), "2026-07-14T09:12:31")

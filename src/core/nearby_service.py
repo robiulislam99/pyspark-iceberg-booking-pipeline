@@ -101,3 +101,54 @@ def get_nearby_properties_for_id(
     results = get_nearby_properties(lat, lon, radius_km, limit + 1, published_only)
 
     return [r for r in results if r["id"] != property_id][:limit]
+
+
+def get_nearby_properties_for_sitemap(
+    property_id: str,
+    radius_km: float = 5,
+    limit: int = 20,
+) -> list[dict]:
+    es = get_es_client()
+    doc = es.get(index=INDEX_NAME, id=property_id, ignore=[404])
+
+    if not doc or not doc.get("found"):
+        return []
+
+    lonlat = doc["_source"].get("lonlat")
+    if not lonlat or len(lonlat) != 2:
+        return []
+    lon, lat = lonlat
+
+    query = {
+        "query": {
+            "bool": {
+                "filter": [
+                    {"geo_distance": {"distance": f"{radius_km}km", "lonlat": {"lat": lat, "lon": lon}}},
+                    {"term": {"published": True}},
+                ]
+            }
+        },
+        "sort": [{"_geo_distance": {"lonlat": {"lat": lat, "lon": lon}, "order": "asc", "unit": "km"}}],
+        "size": limit + 1,  # +1 to account for the source property itself showing up
+    }
+
+    response = es.search(index=INDEX_NAME, body=query)
+
+    rows = []
+    for hit in response["hits"]["hits"]:
+        source = hit["_source"]
+        external_id = source.get("id")
+        if external_id == property_id:
+            continue
+
+        rows.append(
+            {
+                "external_id": external_id,
+                "property_slug": source.get("property_slug"),
+                "last_synced_at": source.get("updated_at"),
+                "feature_image": source.get("feature_image"),
+                "images": [],  # ES document only stores feature_image, not the full images list
+            }
+        )
+
+    return rows[:limit]
