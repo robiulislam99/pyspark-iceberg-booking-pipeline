@@ -27,7 +27,7 @@ Local ETL and analytics pipeline, fully local and containerized.
 ## Prerequisites
 
 - Docker + Docker Compose
-- `booking/` data folder placed at `./data/booking` (sibling of `src/`)
+- `data/` is the local data root; place Booking.com feeds under `./data/booking` (sibling of `src/`)
 
 ## Project structure
 
@@ -37,6 +37,14 @@ Local ETL and analytics pipeline, fully local and containerized.
 - `src/core/` — core processing, ranking, snapshot diff, similarity, and static-data logic
 - `src/mappers/` — mapping logic between source documents and target formats
 - `data/` — input feeds, local exports, and local service data directories
+- `data/booking/` — Booking.com data root used by the pipeline
+- `data/booking/accommodation_details/`
+- `data/booking/changelog/`
+- `data/booking/custom_static/`
+- `data/booking/reviews/`
+- `data/booking/reviews_scores/`
+- `data/booking/search/`
+- `data/booking/static/`
 - `notebooks/` — exploratory notebooks for data analysis
 - `tests/` — unit tests covering the pipeline components
 - `docker-compose.yml` and `Dockerfile` — container orchestration and image setup
@@ -44,7 +52,7 @@ Local ETL and analytics pipeline, fully local and containerized.
 ## First-time setup
 
 ```bash
-git clone https://github.com/robiulislam99/pyspark-iceberg-booking-pipeline.git booking-lake
+git clone https://github.com/robiulislam99/booking-lake.git
 cd booking-lake
 
 mkdir -p data/warehouse data/scheduler_data notebooks .cache/ivy_cache data/s3_local \
@@ -195,7 +203,9 @@ docker compose exec spark python /app/src/scripts/detect_duplicates.py
 ## 9. Generate sitemap
 
 ```bash
-docker compose exec spark python /app/src/scripts/generate_sitemap.py
+docker compose exec spark python /app/src/scripts/generate_property_sitemap.py
+docker compose exec spark python /app/src/scripts/generate_nearby_sitemap.py
+docker compose exec spark python /app/src/scripts/generate_root_sitemap_index.py
 ```
 
 This writes the sitemap XML files to `data/sitemaps/` (for example `sitemap.xml` or `sitemap-1.xml` plus `sitemap_index.xml` when the dataset is large).
