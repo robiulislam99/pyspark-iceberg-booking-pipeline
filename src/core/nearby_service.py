@@ -76,6 +76,9 @@ def get_nearby_properties(
     return results
 
 
+# for generate_nearby_sitemap.py, which needs the full payload for XML rendering
+
+
 def get_nearby_properties_for_id(
     property_id: str,
     radius_km: float = 5,
@@ -152,3 +155,21 @@ def get_nearby_properties_for_sitemap(
         )
 
     return rows[:limit]
+
+
+def get_all_published_ids(batch_size: int = 10000) -> list[str]:
+    """
+    Returns every published property's external_id from Elasticsearch.
+    Uses a single search with size=batch_size -- fine up to ES's default
+    max_result_window (10,000). If this project's dataset ever exceeds
+    that, this needs to switch to the scroll API or search_after paging
+    instead of a single request.
+    """
+    es = get_es_client()
+    query = {
+        "query": {"term": {"published": True}},
+        "_source": False,
+        "size": batch_size,
+    }
+    response = es.search(index=INDEX_NAME, body=query)
+    return [hit["_id"] for hit in response["hits"]["hits"]]
