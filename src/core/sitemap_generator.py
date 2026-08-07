@@ -1,21 +1,15 @@
 """
 URL structure: {SITE_BASE_URL}/property/{property_slug}/{external_id}
 
-Functions here RENDER XML fragments as strings rather than writing
-directly to a file -- this lets the caller (generate_sitemap.py) track
-exact byte size before writing (for the sitemap protocol's 50MB
-uncompressed limit) and write through gzip compression, without this
-module needing to know anything about either concern.
 """
 
+import gzip
 import os
 from datetime import datetime
+from pathlib import Path
 from xml.sax.saxutils import escape
 
 SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "https://rentbyowner.com")
-
-# Sitemap protocol hard limits: a single sitemap file must not exceed
-# 50,000 URLs OR 50MB uncompressed, whichever comes first.
 MAX_URLS_PER_SITEMAP = 50000
 MAX_BYTES_PER_SITEMAP = 50 * 1024 * 1024  # 50MB, uncompressed size
 # Safety margin below the hard limit -- stop adding new <url> blocks
@@ -58,7 +52,6 @@ def _format_lastmod(dt) -> str:
 
 
 def _collect_image_urls(row: dict) -> list[str]:
-    """Return all image URLs for a sitemap row, preferring the feature image first."""
     image_urls: list[str] = []
     for image_url in [row.get("feature_image"), *(row.get("images") or [])]:
         if not image_url or image_url in image_urls:
@@ -116,3 +109,86 @@ def render_sitemap_index(sitemap_filenames: list[str]) -> str:
         lines.append("  </sitemap>")
     lines.append("</sitemapindex>")
     return "\n".join(lines) + "\n"
+
+
+class SitemapFileWriter:
+    """
+    Wraps one open, gzip-compressed sitemap file, tracking URL count and
+    UNCOMPRESSED byte size written so far (the sitemap protocol's 50MB
+    limit is defined on uncompressed content, so size is tracked on the
+    text before gzip does its own compression, not the compressed output).
+
+    Shared by any script that writes a sitemap with rollover -- the main
+    property sitemap, the combined nearby sitemap, and any future one.
+    """
+
+    def __init__(self, path: Path):
+        self.path = path
+        self._file = gzip.open(path, "wt", encoding="utf-8")
+        self._uncompressed_bytes = 0
+        self.url_count = 0
+        self._write(render_header())
+
+    def _write(self, text: str):
+        self._file.write(text)
+        self._uncompressed_bytes += len(text.encode("utf-8"))
+
+    def would_overflow(self, block_text: str) -> bool:
+        if self.url_count >= MAX_URLS_PER_SITEMAP:
+            return True
+        projected = self._uncompressed_bytes + len(block_text.encode("utf-8"))
+        return projected > (MAX_BYTES_PER_SITEMAP - SIZE_SAFETY_MARGIN_BYTES)
+
+    def write_url_block(self, block_text: str):
+        self._write(block_text)
+        self.url_count += 1
+
+    def close(self):
+        self._write(render_footer())
+        self._file.close()
+
+
+def write_sitemap_files(rows_iterator, output_dir: Path, filename_prefix: str) -> list[str]:
+    """
+    Shared rollover-writing loop: takes any iterator of row dicts, writes
+    them across as many gzip sitemap files as needed (respecting the
+    50,000-URL / 50MB-uncompressed limits), and returns the list of
+    filenames written. filename_prefix distinguishes sitemap families,
+    e.g. "sitemap" -> sitemap.xml.gz, sitemap-2.xml.gz, ...
+         "nearby-sitemap" -> nearby-sitemap.xml.gz, nearby-sitemap-2.xml.gz, ...
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    filenames = []
+    current_writer = None
+    file_index = 1
+    total_written = 0
+
+    def open_next_file():
+        nonlocal current_writer, file_index
+        if current_writer is not None:
+            current_writer.close()
+
+        filename = f"{filename_prefix}.xml.gz" if file_index == 1 else f"{filename_prefix}-{file_index}.xml.gz"
+        filenames.append(filename)
+        current_writer = SitemapFileWriter(output_dir / filename)
+        file_index += 1
+
+    open_next_file()
+
+    for row in rows_iterator:
+        block_text = render_url_block(row)
+
+        if current_writer.would_overflow(block_text):
+            open_next_file()
+
+        current_writer.write_url_block(block_text)
+        total_written += 1
+
+    current_writer.close()
+
+    if total_written == 0:
+        (output_dir / filenames[0]).unlink(missing_ok=True)
+        return []
+
+    return filenames
