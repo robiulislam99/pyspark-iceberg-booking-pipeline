@@ -246,5 +246,232 @@ class TestGetNearbyPropertiesForId:
         assert kwargs.get("index") == nearby_service.INDEX_NAME
 
 
+class TestGetNearbyPropertiesForSitemap:
+    @patch("core.nearby_service.get_es_client")
+    def test_looks_up_lonlat_and_returns_mapped_rows(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {
+            "found": True,
+            "_source": {"lonlat": [-9.1, 38.7]},  # [lon, lat]
+        }
+        mock_es.search.return_value = {
+            "hits": {
+                "hits": [
+                    {
+                        "_source": {
+                            "id": "other_id",
+                            "property_slug": "sea-view-villa",
+                            "updated_at": "2024-01-01",
+                            "feature_image": "img.jpg",
+                        }
+                    },
+                ]
+            }
+        }
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("self_id", radius_km=5, limit=20)
+
+        assert results == [
+            {
+                "external_id": "other_id",
+                "property_slug": "sea-view-villa",
+                "last_synced_at": "2024-01-01",
+                "feature_image": "img.jpg",
+                "images": [],
+            }
+        ]
+
+    @patch("core.nearby_service.get_es_client")
+    def test_excludes_source_property_itself(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {
+            "found": True,
+            "_source": {"lonlat": [1.0, 2.0]},
+        }
+        mock_es.search.return_value = {
+            "hits": {
+                "hits": [
+                    {"_source": {"id": "self_id", "property_slug": "self"}},
+                    {"_source": {"id": "other_id", "property_slug": "other"}},
+                ]
+            }
+        }
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("self_id")
+
+        assert len(results) == 1
+        assert results[0]["external_id"] == "other_id"
+
+    @patch("core.nearby_service.get_es_client")
+    def test_property_not_found_returns_empty_list(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {"found": False}
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("missing_id")
+
+        assert results == []
+
+    @patch("core.nearby_service.get_es_client")
+    def test_falsy_doc_returns_empty_list(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = None
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("missing_id")
+
+        assert results == []
+
+    @patch("core.nearby_service.get_es_client")
+    def test_missing_lonlat_returns_empty_list(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {"found": True, "_source": {}}
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("p1")
+
+        assert results == []
+
+    @patch("core.nearby_service.get_es_client")
+    def test_malformed_lonlat_returns_empty_list(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {
+            "found": True,
+            "_source": {"lonlat": [-9.1]},  # wrong length
+        }
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("p1")
+
+        assert results == []
+
+    @patch("core.nearby_service.get_es_client")
+    def test_query_includes_published_filter_and_size_limit_plus_one(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {
+            "found": True,
+            "_source": {"lonlat": [1.0, 2.0]},
+        }
+        mock_es.search.return_value = {"hits": {"hits": []}}
+        mock_get_client.return_value = mock_es
+
+        nearby_service.get_nearby_properties_for_sitemap("p1", radius_km=10, limit=5)
+
+        _, kwargs = mock_es.search.call_args
+        body = kwargs["body"]
+
+        assert body["size"] == 6  # limit + 1
+        filters = body["query"]["bool"]["filter"]
+        assert {"geo_distance": {"distance": "10km", "lonlat": {"lat": 2.0, "lon": 1.0}}} in filters
+        assert {"term": {"published": True}} in filters
+
+        sort_clause = body["sort"][0]["_geo_distance"]
+        assert sort_clause["lonlat"] == {"lat": 2.0, "lon": 1.0}
+        assert sort_clause["order"] == "asc"
+        assert sort_clause["unit"] == "km"
+
+        assert mock_es.search.call_args.kwargs["index"] == nearby_service.INDEX_NAME
+
+    @patch("core.nearby_service.get_es_client")
+    def test_result_limit_respected(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {
+            "found": True,
+            "_source": {"lonlat": [1.0, 2.0]},
+        }
+        mock_es.search.return_value = {
+            "hits": {
+                "hits": [
+                    {"_source": {"id": "a"}},
+                    {"_source": {"id": "b"}},
+                    {"_source": {"id": "c"}},
+                ]
+            }
+        }
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("self_id", limit=2)
+
+        assert len(results) == 2
+
+    @patch("core.nearby_service.get_es_client")
+    def test_images_field_always_empty_list(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {
+            "found": True,
+            "_source": {"lonlat": [1.0, 2.0]},
+        }
+        mock_es.search.return_value = {"hits": {"hits": [{"_source": {"id": "other_id"}}]}}
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_nearby_properties_for_sitemap("self_id")
+
+        assert results[0]["images"] == []
+
+    @patch("core.nearby_service.get_es_client")
+    def test_uses_ignore_404_when_fetching_doc(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.get.return_value = {"found": False}
+        mock_get_client.return_value = mock_es
+
+        nearby_service.get_nearby_properties_for_sitemap("p1")
+
+        _, kwargs = mock_es.get.call_args
+        assert kwargs.get("ignore") == [404]
+        assert kwargs.get("id") == "p1"
+        assert kwargs.get("index") == nearby_service.INDEX_NAME
+
+
+class TestGetAllPublishedIds:
+    @patch("core.nearby_service.get_es_client")
+    def test_returns_ids_from_hits(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.search.return_value = {"hits": {"hits": [{"_id": "p1"}, {"_id": "p2"}]}}
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_all_published_ids()
+
+        assert results == ["p1", "p2"]
+
+    @patch("core.nearby_service.get_es_client")
+    def test_query_uses_batch_size_term_filter_and_no_source(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.search.return_value = {"hits": {"hits": []}}
+        mock_get_client.return_value = mock_es
+
+        nearby_service.get_all_published_ids(batch_size=500)
+
+        _, kwargs = mock_es.search.call_args
+        body = kwargs["body"]
+
+        assert body["query"] == {"term": {"published": True}}
+        assert body["_source"] is False
+        assert body["size"] == 500
+        assert mock_es.search.call_args.kwargs["index"] == nearby_service.INDEX_NAME
+
+    @patch("core.nearby_service.get_es_client")
+    def test_default_batch_size_is_10000(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.search.return_value = {"hits": {"hits": []}}
+        mock_get_client.return_value = mock_es
+
+        nearby_service.get_all_published_ids()
+
+        body = mock_es.search.call_args.kwargs["body"]
+        assert body["size"] == 10000
+
+    @patch("core.nearby_service.get_es_client")
+    def test_no_hits_returns_empty_list(self, mock_get_client):
+        mock_es = MagicMock()
+        mock_es.search.return_value = {"hits": {"hits": []}}
+        mock_get_client.return_value = mock_es
+
+        results = nearby_service.get_all_published_ids()
+
+        assert results == []
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
